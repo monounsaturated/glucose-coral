@@ -103,7 +103,7 @@ export default function ResultsPage() {
                         <ArrowLeft className="w-3 h-3" />
                         Back to upload
                     </Link>
-                    <h1 className="text-2xl font-bold mb-2">Analysis Results</h1>
+                    <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>Analysis Results</h1>
                     <p className="text-sm text-[var(--color-text-secondary)]">
                         Mode: {data.run.mode === "csv-food" ? "Meals from CSV" : "Meals from document"}
                     </p>
@@ -183,15 +183,18 @@ export default function ResultsPage() {
                                     <p className="text-xs text-[var(--color-text-muted)] mb-2">
                                         {new Date(meal.timestamp).toLocaleString()}
                                     </p>
-                                    <div className="flex gap-4 text-xs">
+                                    <div className="flex flex-wrap gap-3 text-xs">
                                         {analysis?.peakDelta !== null && analysis?.peakDelta !== undefined && (
                                             <span className="text-[var(--color-text-secondary)]">
                                                 Δ {analysis.peakDelta} mg/dL
                                             </span>
                                         )}
                                         {meal.carbsGrams !== null && meal.carbsGrams !== undefined && (
-                                            <span className="text-[var(--color-text-secondary)]">
+                                            <span className="flex items-center gap-1 text-[var(--color-text-secondary)]">
                                                 {meal.carbsGrams}g carbs
+                                                {meal.carbsSource === "llm-estimated" && (
+                                                    <span className="text-[var(--color-accent-hover)] opacity-70">·AI</span>
+                                                )}
                                             </span>
                                         )}
                                     </div>

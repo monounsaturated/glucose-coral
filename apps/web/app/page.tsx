@@ -38,7 +38,7 @@ export default function LandingPage() {
             <Zap className="w-3 h-3" />
             Exploratory Glucose Analytics
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight font-[var(--font-display)]">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
             Understand How Food
             <br />
             <span className="gradient-text">Affects Your Glucose</span>
@@ -102,7 +102,7 @@ export default function LandingPage() {
       <section className="pb-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">See It In Action</h2>
+            <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>See It In Action</h2>
             <p className="text-[var(--color-text-secondary)]">
               Built-in demo with 3 days of sample data
             </p>
@@ -114,7 +114,7 @@ export default function LandingPage() {
       {/* How It Works */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-10">How It Works</h2>
+          <h2 className="text-2xl font-bold text-center mb-10" style={{ fontFamily: "var(--font-display)" }}>How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
               { step: "1", title: "Upload CSV", desc: "Abbott FreeStyle Libre export" },

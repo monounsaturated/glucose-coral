@@ -111,6 +111,14 @@ export function GlucoseChart({
         [filteredReadings, timeRange]
     );
 
+    const yDomain = useMemo((): [number, number] => {
+        if (chartData.length === 0) return [60, 200];
+        const values = chartData.map((d) => d.glucose as number);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        return [Math.max(40, Math.floor((min - 20) / 10) * 10), Math.ceil((max + 20) / 10) * 10];
+    }, [chartData]);
+
     // Find indices closest to meal/workout times for markers
     const mealMarkerIndices = useMemo(() => {
         return filteredMeals.map((meal) => {
@@ -220,23 +228,57 @@ export function GlucoseChart({
 
     return (
         <div className="space-y-4">
-            {/* Time range tabs */}
-            <div className="flex items-center gap-2">
-                {(["1d", "7d", "14d"] as TimeRange[]).map((range) => (
-                    <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${timeRange === range
-                                ? "bg-[var(--color-accent)] text-white"
-                                : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                            }`}
-                    >
-                        {range.toUpperCase()}
-                    </button>
-                ))}
-                <span className="text-xs text-[var(--color-text-muted)] ml-2">
-                    {filteredReadings.length} readings
-                </span>
+            {/* Time range tabs + legend */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                    {(["1d", "7d", "14d"] as TimeRange[]).map((range) => (
+                        <button
+                            key={range}
+                            onClick={() => setTimeRange(range)}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${timeRange === range
+                                    ? "bg-[var(--color-accent)] text-white"
+                                    : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                }`}
+                        >
+                            {range.toUpperCase()}
+                        </button>
+                    ))}
+                    <span className="text-xs text-[var(--color-text-muted)] ml-2">
+                        {filteredReadings.length} readings
+                    </span>
+                </div>
+                {/* Chart legend */}
+                <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-6 h-0.5 rounded" style={{ background: "#22d3ee" }} />
+                        Glucose
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            className="inline-block w-0.5 h-3.5"
+                            style={{ background: "var(--color-meal-marker)", borderRadius: 2 }}
+                        />
+                        <span className="w-1 h-1 rounded-full" style={{ background: "var(--color-meal-marker)" }} />
+                        Meal
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            className="inline-block w-0.5 h-3.5"
+                            style={{ background: "var(--color-workout-marker)", borderRadius: 2 }}
+                        />
+                        <span
+                            className="inline-block"
+                            style={{
+                                width: 0,
+                                height: 0,
+                                borderLeft: "4px solid transparent",
+                                borderRight: "4px solid transparent",
+                                borderBottom: `7px solid var(--color-workout-marker)`,
+                            }}
+                        />
+                        Workout
+                    </span>
+                </div>
             </div>
 
             {/* Chart */}
@@ -257,7 +299,7 @@ export function GlucoseChart({
                             axisLine={{ stroke: "var(--color-border)" }}
                         />
                         <YAxisComponent
-                            domain={[60, 200]}
+                            domain={yDomain}
                             tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
                             axisLine={{ stroke: "var(--color-border)" }}
                             label={{

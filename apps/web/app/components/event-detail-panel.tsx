@@ -48,11 +48,17 @@ export function EventDetailPanel({ meal, analysis, onClose }: EventDetailPanelPr
                 )}
                 {meal.carbsGrams !== null && meal.carbsGrams !== undefined && (
                     <div>
-                        <p className="text-xs text-[var(--color-text-muted)] mb-1">
-                            Carbohydrates{" "}
-                            <span className="text-[var(--color-text-muted)]">
-                                ({meal.carbsSource === "csv-provided" ? "from CSV" : "estimated"})
-                            </span>
+                        <p className="text-xs text-[var(--color-text-muted)] mb-1 flex items-center gap-1.5">
+                            Carbohydrates
+                            {meal.carbsSource === "csv-provided" ? (
+                                <span className="badge bg-[var(--color-glucose-glow)] text-[var(--color-glucose)]" style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem" }}>
+                                    from CSV
+                                </span>
+                            ) : meal.carbsSource === "llm-estimated" ? (
+                                <span className="badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)]" style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem" }}>
+                                    AI estimated
+                                </span>
+                            ) : null}
                         </p>
                         <p className="text-sm font-medium">{meal.carbsGrams}g</p>
                     </div>

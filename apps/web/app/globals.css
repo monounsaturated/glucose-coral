@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
+:root {
   --color-background: #fff4e8;
   --color-surface: #fff9f2;
   --color-surface-elevated: #fff1e2;
@@ -26,7 +28,7 @@
   --color-spike-moderate: #f59e0b;
   --color-spike-low: #22c55e;
   --color-danger: #ef4444;
-  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 }
 

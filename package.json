@@ -1,5 +1,5 @@
 {
-  "name": "glucose-response-explorer",
+  "name": "glucose-coral",
   "private": true,
   "workspaces": [
     "apps/*",

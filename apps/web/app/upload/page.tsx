@@ -262,8 +262,17 @@ export default function UploadPage() {
                     </button>
                 </div>
 
+                {/* Feature note */}
+                <div className="mt-6 card text-center" style={{ padding: "1rem" }}>
+                    <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                        <span className="badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)] mr-2" style={{ fontSize: "0.65rem", padding: "0.1rem 0.4rem" }}>AI</span>
+                        Carbohydrate content is automatically estimated from your meal descriptions
+                        when not already provided — clearly labeled as &ldquo;AI estimated&rdquo; in results.
+                    </p>
+                </div>
+
                 {/* Privacy Note */}
-                <div className="mt-8 text-center">
+                <div className="mt-4 text-center">
                     <p className="text-xs text-[var(--color-text-muted)] leading-relaxed max-w-md mx-auto">
                         Your data is processed securely. Uploaded files are stored temporarily
                         and automatically deleted within 24 hours. No account is required.

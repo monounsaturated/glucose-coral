@@ -67,7 +67,7 @@ export default function DemoPage() {
                         Back to home
                     </Link>
                     <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-2xl font-bold">Demo Analysis</h1>
+                        <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Demo Analysis</h1>
                         <span className="badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)] text-xs">
                             Sample Data
                         </span>
