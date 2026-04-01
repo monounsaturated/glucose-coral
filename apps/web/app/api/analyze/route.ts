@@ -128,6 +128,11 @@ export async function POST(request: NextRequest) {
                 meals = llmEvents.meals;
                 workouts = llmEvents.workouts;
                 sleepEvents = llmEvents.sleepEvents;
+                if (meals.length === 0 && workouts.length === 0 && sleepEvents.length === 0) {
+                    const basicEvents = extractEventsFromTextBasic(extractionText);
+                    meals = basicEvents.meals as MealEvent[];
+                    workouts = basicEvents.workouts as WorkoutEvent[];
+                }
             } catch {
                 const basicEvents = extractEventsFromTextBasic(extractionText);
                 meals = basicEvents.meals as MealEvent[];

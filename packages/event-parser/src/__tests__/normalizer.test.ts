@@ -43,4 +43,26 @@ describe('extractEventsFromTextBasic', () => {
         expect(result.meals.length).toBe(0);
         expect(result.workouts.length).toBe(0);
     });
+
+    it('extracts meals and workouts from french bullet-style notes', () => {
+        const text = `Mardi 31/03/2026:
+- 9h17: 1 carotte crue
+- 13h (restaurant japonais):
+- Soupe miso
+- Salade de choux
+- (13h25) 16 California crevette avocat
+- Fini à 13h35
+- marche de 13h35 à 13h45
+- 18h58:
+- 500g patate bouillie
+- 210g poulet blanc
+- 4 cac miel
+- Fini à 20h01`;
+
+        const result = extractEventsFromTextBasic(text);
+        expect(result.meals.length).toBeGreaterThanOrEqual(3);
+        expect(result.workouts.length).toBeGreaterThanOrEqual(1);
+        expect(result.meals.some((m) => m.notes?.toLowerCase().includes('carotte'))).toBe(true);
+        expect(result.meals.some((m) => m.notes?.toLowerCase().includes('california'))).toBe(true);
+    });
 });
