@@ -26,6 +26,10 @@ describe('parseLibreTimestamp', () => {
     it('parses timestamp with trailing timezone token', () => {
         expect(parseLibreTimestamp('01-04-2026 08:10 UTC')).toBe('2026-04-01T08:10:00');
     });
+
+    it('parses timestamp with seconds and year-first format', () => {
+        expect(parseLibreTimestamp('2026-04-01 08:10:59')).toBe('2026-04-01T08:10:00');
+    });
 });
 
 const SAMPLE_CSV = `FreeStyle Libre Report
@@ -52,6 +56,12 @@ Device,Serial Number,Device Timestamp,Record Type,Historic Glucose mg/dL,Scan Gl
 FreeStyle Libre 3,68691CC4-D516-45E6-BA10-92C17ADABF65,23-03-2026 10:34,0,102,,,,,,,,,,,,,,
 FreeStyle Libre 3,68691CC4-D516-45E6-BA10-92C17ADABF65,23-03-2026 10:39,0,101,,,,,,,,,,,,,,
 FreeStyle Libre 3,68691CC4-D516-45E6-BA10-92C17ADABF65,23-03-2026 10:44,0,97,,,,,,,,,,,,,,`;
+
+const SAMPLE_CSV_SEMICOLON_MMOL = `FreeStyle Libre Report
+Generated: 20-03-2026 08:00
+Device;Serial Number;Device Timestamp;Record Type;Historic Glucose mmol/L;Scan Glucose mmol/L;Non-numeric Food;Carbohydrates (grams);Notes
+FreeStyleLibre;ABC123;2026-03-20 06:00:00;0;5,2;;;0;
+FreeStyleLibre;ABC123;2026-03-20 07:45:00;0;6,1;;Oatmeal with banana;45;Breakfast`;
 
 describe('parseLibreCsv', () => {
     it('skips metadata rows and finds header', () => {
@@ -111,5 +121,13 @@ describe('parseLibreCsv', () => {
     it('parses valid CSV when header appears after many metadata lines', () => {
         const result = parseLibreCsv(SAMPLE_CSV_WITH_LONG_METADATA);
         expect(result.readings.length).toBe(3);
+    });
+
+    it('parses semicolon-delimited mmol/L exports with decimal comma', () => {
+        const result = parseLibreCsv(SAMPLE_CSV_SEMICOLON_MMOL);
+        expect(result.readings.length).toBe(2);
+        expect(result.readings[0].value).toBe(94); // 5.2 mmol/L * 18
+        expect(result.meals.length).toBe(1);
+        expect(result.meals[0].carbsGrams).toBe(45);
     });
 });

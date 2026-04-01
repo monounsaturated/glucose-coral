@@ -3,37 +3,83 @@ import type { GlucoseReading, MealEvent, RawCsvRow, GlucoseSource } from '@gluco
 // ─── Timestamp Parsing ─────────────────────────────────────
 
 /**
- * Parse DD-MM-YYYY HH:mm timestamp to ISO string.
- * Accepts separators: - / . and space or T between date and time.
+ * Parse Libre timestamps to normalized local ISO-like string.
+ * Accepts:
+ * - DD-MM-YYYY HH:mm[:ss]
+ * - YYYY-MM-DD HH:mm[:ss]
+ * - Optional trailing timezone tokens (e.g. UTC)
  */
 export function parseLibreTimestamp(raw: string): string | null {
     const trimmed = raw.trim();
-    // Match DD-MM-YYYY HH:mm (with various separators)
-    const match = trimmed.match(
-        /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s+(\d{1,2}):(\d{2})(?:\s+[A-Za-z]+)?$/,
-    );
-    if (!match) return null;
-
-    const [, day, month, year, hour, minute] = match;
-    const d = parseInt(day, 10);
-    const m = parseInt(month, 10);
-    const y = parseInt(year, 10);
-    const h = parseInt(hour, 10);
-    const min = parseInt(minute, 10);
-
-    if (m < 1 || m > 12 || d < 1 || d > 31 || h > 23 || min > 59) return null;
-
-    // Create date in local interpretation (no timezone conversion)
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${y}-${pad(m)}-${pad(d)}T${pad(h)}:${pad(min)}:00`;
+
+    const dayFirst = trimmed.match(
+        /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+[A-Za-z]+)?$/,
+    );
+    const yearFirst = trimmed.match(
+        /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+[A-Za-z]+)?$/,
+    );
+
+    const pick = dayFirst
+        ? {
+            y: parseInt(dayFirst[3], 10),
+            m: parseInt(dayFirst[2], 10),
+            d: parseInt(dayFirst[1], 10),
+            h: parseInt(dayFirst[4], 10),
+            min: parseInt(dayFirst[5], 10),
+          }
+        : yearFirst
+          ? {
+              y: parseInt(yearFirst[1], 10),
+              m: parseInt(yearFirst[2], 10),
+              d: parseInt(yearFirst[3], 10),
+              h: parseInt(yearFirst[4], 10),
+              min: parseInt(yearFirst[5], 10),
+            }
+          : null;
+
+    if (!pick) return null;
+    if (pick.m < 1 || pick.m > 12 || pick.d < 1 || pick.d > 31 || pick.h > 23 || pick.min > 59) {
+        return null;
+    }
+
+    return `${pick.y}-${pad(pick.m)}-${pad(pick.d)}T${pad(pick.h)}:${pad(pick.min)}:00`;
 }
 
 // ─── CSV Parsing ───────────────────────────────────────────
 
+function countDelimiterOutsideQuotes(line: string, delimiter: ',' | ';'): number {
+    let inQuotes = false;
+    let count = 0;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+            continue;
+        }
+        if (char === delimiter && !inQuotes) count++;
+    }
+    return count;
+}
+
+function detectDelimiter(lines: string[]): ',' | ';' {
+    let commaScore = 0;
+    let semicolonScore = 0;
+    for (const line of lines.slice(0, 60)) {
+        commaScore += countDelimiterOutsideQuotes(line, ',');
+        semicolonScore += countDelimiterOutsideQuotes(line, ';');
+    }
+    return semicolonScore > commaScore ? ';' : ',';
+}
+
 /**
  * Split a CSV line respecting quoted fields.
  */
-function splitCsvLine(line: string): string[] {
+function splitCsvLine(line: string, delimiter: ',' | ';'): string[] {
     const fields: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -47,7 +93,7 @@ function splitCsvLine(line: string): string[] {
             } else {
                 inQuotes = !inQuotes;
             }
-        } else if (char === ',' && !inQuotes) {
+        } else if (char === delimiter && !inQuotes) {
             fields.push(current.trim());
             current = '';
         } else {
@@ -81,9 +127,16 @@ function findHeaderRowIndex(lines: string[]): number {
         if (lower.includes('device timestamp') && (lower.includes('historic glucose') || lower.includes('scan glucose'))) {
             return i;
         }
-        if (splitCsvLine(lines[i]).length >= 5 && lower.includes('device')) return i;
+        const commas = countDelimiterOutsideQuotes(lines[i], ',');
+        const semicolons = countDelimiterOutsideQuotes(lines[i], ';');
+        if ((commas >= 5 || semicolons >= 5) && lower.includes('device')) return i;
     }
     return 0;
+}
+
+function parseLocalizedNumber(raw: string): number {
+    const normalized = raw.trim().replace(',', '.');
+    return parseFloat(normalized);
 }
 
 export interface LibreParseResult {
@@ -107,9 +160,10 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
         return { readings: [], meals: [], rawRows: [], headers: [], skippedMetadataRows: 0 };
     }
 
+    const delimiter = detectDelimiter(lines);
     const headerIndex = findHeaderRowIndex(lines);
     const headerLine = lines[headerIndex];
-    const headers = splitCsvLine(headerLine);
+    const headers = splitCsvLine(headerLine, delimiter);
 
     // Build column index map (case-insensitive)
     const colIndex = new Map<string, number>();
@@ -135,7 +189,7 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
     let mealCounter = 0;
 
     for (const line of dataLines) {
-        const fields = splitCsvLine(line);
+        const fields = splitCsvLine(line, delimiter);
         if (fields.length < 3) continue;
 
         // Build raw row record
@@ -152,13 +206,37 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
         if (!ts) continue;
 
         // Extract glucose reading
-        const historicStr = getCol(fields, 'Historic Glucose mg/dL', 'Historic Glucose (mg/dL)');
-        const scanStr = getCol(fields, 'Scan Glucose mg/dL', 'Scan Glucose (mg/dL)');
-        const stripStr = getCol(fields, 'Strip Glucose mg/dL', 'Strip Glucose (mg/dL)');
+        const historicStr = getCol(
+            fields,
+            'Historic Glucose mg/dL',
+            'Historic Glucose (mg/dL)',
+            'Historic Glucose mmol/L',
+            'Historic Glucose (mmol/L)',
+        );
+        const scanStr = getCol(
+            fields,
+            'Scan Glucose mg/dL',
+            'Scan Glucose (mg/dL)',
+            'Scan Glucose mmol/L',
+            'Scan Glucose (mmol/L)',
+        );
+        const stripStr = getCol(
+            fields,
+            'Strip Glucose mg/dL',
+            'Strip Glucose (mg/dL)',
+            'Strip Glucose mmol/L',
+            'Strip Glucose (mmol/L)',
+        );
 
-        const historic = historicStr ? parseFloat(historicStr) : NaN;
-        const scan = scanStr ? parseFloat(scanStr) : NaN;
-        const strip = stripStr ? parseFloat(stripStr) : NaN;
+        const usesMmol = headers.some((h) => {
+            const lower = h.toLowerCase();
+            return lower.includes('glucose') && lower.includes('mmol/l');
+        });
+        const toMgDl = (n: number) => (usesMmol ? Math.round(n * 18) : n);
+
+        const historic = historicStr ? toMgDl(parseLocalizedNumber(historicStr)) : NaN;
+        const scan = scanStr ? toMgDl(parseLocalizedNumber(scanStr)) : NaN;
+        const strip = stripStr ? toMgDl(parseLocalizedNumber(stripStr)) : NaN;
 
         let glucoseValue: number | null = null;
         let glucoseSource: GlucoseSource = 'historic';
@@ -189,10 +267,10 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
         const carbsServingsStr = getCol(fields, 'Carbohydrates (servings)');
         const notes = getCol(fields, 'Notes');
 
-        const carbsGrams = carbsGramsStr ? parseFloat(carbsGramsStr) : NaN;
-        const carbsServings = carbsServingsStr ? parseFloat(carbsServingsStr) : NaN;
+        const carbsGrams = carbsGramsStr ? parseLocalizedNumber(carbsGramsStr) : NaN;
+        const carbsServings = carbsServingsStr ? parseLocalizedNumber(carbsServingsStr) : NaN;
 
-        const hasFoodData = foodNotes || !isNaN(carbsGrams) || !isNaN(carbsServings);
+        const hasFoodData = Boolean(foodNotes) || (!isNaN(carbsGrams) && carbsGrams > 0) || (!isNaN(carbsServings) && carbsServings > 0);
 
         if (hasFoodData) {
             mealCounter++;
