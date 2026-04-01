@@ -11,6 +11,37 @@ import type {
     WorkoutEvent,
 } from "@glucose/types";
 
+async function estimateMissingCarbsForMeals(meals: MealEvent[]): Promise<MealEvent[]> {
+    const llmProvider = createLLMProvider(process.env.OPENAI_API_KEY);
+
+    return Promise.all(
+        meals.map(async (meal) => {
+            if (meal.carbsGrams !== null && meal.carbsGrams !== undefined) {
+                return meal;
+            }
+
+            const description = meal.name ?? meal.notes ?? meal.ingredients?.join(", ");
+            if (!description || description.trim().length === 0) {
+                return meal;
+            }
+
+            try {
+                const estimatedCarbs = await llmProvider.estimateMealCarbs(description);
+                if (estimatedCarbs === null || estimatedCarbs === undefined) {
+                    return meal;
+                }
+                return {
+                    ...meal,
+                    carbsGrams: estimatedCarbs,
+                    carbsSource: "llm-estimated",
+                };
+            } catch {
+                return meal;
+            }
+        })
+    );
+}
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
@@ -85,6 +116,7 @@ export async function POST(request: NextRequest) {
                 workouts = basicEvents.workouts as WorkoutEvent[];
             }
         }
+        meals = await estimateMissingCarbsForMeals(meals);
 
         // Run analytics
         const mealAnalyses = analyzeAllMeals(parsed.readings, meals, workouts);
