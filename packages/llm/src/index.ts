@@ -63,12 +63,42 @@ export class OpenAIProvider implements LLMProvider {
             ? `Date hint (use if no date in notes): ${dateHint}\n\n${text}`
             : text;
 
-        const response = await this.chat(MEAL_PARSING_PROMPT, userMessage);
-        const parsed = this.parseJson<{
-            meals?: MealEvent[];
-            workouts?: WorkoutEvent[];
-            sleepEvents?: SleepEvent[];
-        }>(response);
+        const parseResponse = async (message: string) => {
+            const response = await this.chat(MEAL_PARSING_PROMPT, message, {
+                model: 'gpt-4o',
+                maxTokens: 6000,
+            });
+            const parsed = this.parseJson<{
+                meals?: MealEvent[];
+                workouts?: WorkoutEvent[];
+                sleepEvents?: SleepEvent[];
+            }>(response);
+            return { response, parsed };
+        };
+
+        let { response, parsed } = await parseResponse(userMessage);
+
+        // Retry once with explicit correction if model returns invalid JSON or empty extraction.
+        const isEmptyExtraction = (payload?: { meals?: MealEvent[]; workouts?: WorkoutEvent[]; sleepEvents?: SleepEvent[] } | null) =>
+            !payload ||
+            ((payload.meals?.length ?? 0) === 0 &&
+                (payload.workouts?.length ?? 0) === 0 &&
+                (payload.sleepEvents?.length ?? 0) === 0);
+
+        if (isEmptyExtraction(parsed)) {
+            const retryMessage = `${userMessage}
+
+Your previous answer was empty or invalid. Re-parse carefully and output valid JSON only.
+Important:
+- Use all time markers in the notes
+- Group nearby food lines into meals
+- Include workouts and sleep events when present
+- Never return empty arrays unless the text truly contains no events`;
+
+            const retried = await parseResponse(retryMessage);
+            response = retried.response;
+            parsed = retried.parsed;
+        }
 
         if (!parsed) {
             console.error('Failed to parse LLM response for event extraction:', response.slice(0, 200));

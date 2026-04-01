@@ -34,7 +34,7 @@ const ReferenceLineComponent = RechartsReferenceLine as unknown as ComponentType
 const ReferenceAreaComponent = RechartsReferenceArea as unknown as ComponentType<Record<string, unknown>>;
 const ScatterComponent = RechartsScatter as unknown as ComponentType<Record<string, unknown>>;
 
-type TimeRange = "1d" | "7d" | "14d";
+type TimeRange = "1d" | "3d" | "7d";
 
 interface GlucoseChartProps {
     readings: GlucoseReading[];
@@ -75,7 +75,7 @@ export function GlucoseChart({
     onMealSelect,
     selectedMealId,
 }: GlucoseChartProps) {
-    const [timeRange, setTimeRange] = useState<TimeRange>("7d");
+    const [timeRange, setTimeRange] = useState<TimeRange>("3d");
 
     const analysisMap = useMemo(
         () => new Map(analyses.map((a) => [a.mealId, a])),
@@ -90,7 +90,7 @@ export function GlucoseChart({
             a.timestamp.localeCompare(b.timestamp)
         );
         const lastTs = new Date(sortedReadings[sortedReadings.length - 1].timestamp);
-        const days = timeRange === "1d" ? 1 : timeRange === "7d" ? 7 : 14;
+        const days = timeRange === "1d" ? 1 : timeRange === "3d" ? 3 : 7;
         const cutoff = new Date(lastTs.getTime() - days * 24 * 60 * 60 * 1000);
         const cutoffStr = cutoff.toISOString();
 
@@ -223,15 +223,15 @@ export function GlucoseChart({
             }));
     }, [filteredMeals, filteredWorkouts, analysisMap]);
 
-    // Custom tick showing fewer labels for 7d/14d
-    const tickInterval = timeRange === "1d" ? 4 : timeRange === "7d" ? 16 : 32;
+    // Custom tick showing fewer labels for 3d/7d
+    const tickInterval = timeRange === "1d" ? 4 : timeRange === "3d" ? 10 : 16;
 
     return (
         <div className="space-y-4">
             {/* Time range tabs + legend */}
             <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                    {(["1d", "7d", "14d"] as TimeRange[]).map((range) => (
+                    {(["1d", "3d", "7d"] as TimeRange[]).map((range) => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}

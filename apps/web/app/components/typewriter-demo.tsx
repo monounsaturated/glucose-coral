@@ -3,25 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { Utensils, Footprints, Moon, Sparkles } from "lucide-react";
 
-const DEMO_TEXT = `slept 11pm → 7am
-
-9h17: 1 raw carrot
-
-13h (Japanese restaurant):
-- miso soup + cabbage salad
-- 16 california rolls (shrimp/avocado)
-- finished at 13h35
-walk from 13h35 to 13h45
-
-15h50: resistance training til 17h20,
-       then 10 min walk
-
-18h58:
-- 500g boiled potatoes
-- 200g chicken breast
-- olive oil, herbs, 4 tsp honey
-- 50g coconut flakes, 1 mandarine
-- finished at 20h01`;
+const DEMO_TEXT = `9:05am : 1 banana, 2 eggs and a cookies and cream clif bar
+12:32pm :
+- miso soup, cabbage salad, a regular bowl of rice and 12 salmon sashimi
+1:30pm : 20mn walk
+4:10pm : 1 pear and 5 walnuts
+7:10pm : 1 medium sweet potato, half an avocado, around 150 grams of chicken and a slice of apple pie`;
 
 interface ParsedCard {
     icon: "sleep" | "meal" | "workout";
@@ -32,12 +19,35 @@ interface ParsedCard {
 }
 
 const PARSED_CARDS: ParsedCard[] = [
-    { icon: "sleep", label: "Sleep", sublabel: "11:00 PM → 7:00 AM · 8 h", color: "var(--color-glucose)" },
-    { icon: "meal", label: "Snack · 9:17 AM", sublabel: "Raw carrot · ~7g carbs", color: "var(--color-meal)" },
-    { icon: "meal", label: "Lunch · 1:00 PM", sublabel: "Miso soup, cabbage, 16 california rolls", macros: "~68g carbs · 22g protein · 14g fat", color: "var(--color-meal)" },
-    { icon: "workout", label: "Walk · 1:35 PM", sublabel: "10 min", color: "var(--color-workout)" },
-    { icon: "workout", label: "Resistance + Walk · 3:50 PM", sublabel: "Resistance ~90 min, walk 10 min", color: "var(--color-workout)" },
-    { icon: "meal", label: "Dinner · 6:58 PM", sublabel: "Potatoes, chicken, coconut, mandarin", macros: "~138g carbs · 52g protein · 22g fat", color: "var(--color-meal)" },
+    {
+        icon: "meal",
+        label: "Breakfast · 9:05 AM",
+        sublabel: "Banana, 2 eggs, cookies & cream Clif bar",
+        macros: "~74g carbs · 31g protein · 18g fat",
+        color: "var(--color-meal)",
+    },
+    {
+        icon: "meal",
+        label: "Lunch · 12:32 PM",
+        sublabel: "Miso soup, cabbage salad, rice, 12 salmon sashimi",
+        macros: "~82g carbs · 44g protein · 17g fat",
+        color: "var(--color-meal)",
+    },
+    { icon: "workout", label: "Walk · 1:30 PM", sublabel: "20 min", color: "var(--color-workout)" },
+    {
+        icon: "meal",
+        label: "Snack · 4:10 PM",
+        sublabel: "Pear + 5 walnuts",
+        macros: "~29g carbs · 4g protein · 10g fat",
+        color: "var(--color-meal)",
+    },
+    {
+        icon: "meal",
+        label: "Dinner · 7:10 PM",
+        sublabel: "Sweet potato, avocado, chicken, apple pie",
+        macros: "~93g carbs · 39g protein · 23g fat",
+        color: "var(--color-meal)",
+    },
 ];
 
 export function TypewriterDemo() {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseLibreCsv } from "@glucose/libre-parser";
 import { extractDocumentText } from "@glucose/document-parser";
-import { extractEventsFromTextBasic } from "@glucose/event-parser";
 import { analyzeAllMeals, generateCrossMealInsights } from "@glucose/analytics";
 import { createLLMProvider } from "@glucose/llm";
 import type {
@@ -150,6 +149,7 @@ export async function POST(request: NextRequest) {
         const mode = (formData.get("mode") as InputMode) ?? "csv-food";
         const documentFile = formData.get("document") as File | null;
         const documentTextInput = (formData.get("documentText") as string | null)?.trim() ?? "";
+        const hasOpenAiKey = Boolean(process.env.OPENAI_API_KEY);
 
         if (!csvFile) {
             return NextResponse.json({ error: "CSV file is required" }, { status: 400 });
@@ -160,6 +160,12 @@ export async function POST(request: NextRequest) {
         if (mode === "document-food" && !documentFile && !documentTextInput) {
             return NextResponse.json(
                 { error: "In document mode, upload a notes file or paste plain text notes." },
+                { status: 400 },
+            );
+        }
+        if (mode === "document-food" && !hasOpenAiKey) {
+            return NextResponse.json(
+                { error: "Document mode requires OPENAI_API_KEY so meal/sleep/workout notes can be parsed by ChatGPT." },
                 { status: 400 },
             );
         }
@@ -197,20 +203,17 @@ export async function POST(request: NextRequest) {
                 extractionText = extraction.text;
             }
 
-            try {
-                const llmEvents = await llmProvider.extractStructuredEvents(extractionText, dateHint);
-                meals = llmEvents.meals;
-                workouts = llmEvents.workouts;
-                sleepEvents = llmEvents.sleepEvents;
-                if (meals.length === 0 && workouts.length === 0 && sleepEvents.length === 0) {
-                    const basic = extractEventsFromTextBasic(extractionText);
-                    meals = basic.meals as MealEvent[];
-                    workouts = basic.workouts as WorkoutEvent[];
-                }
-            } catch {
-                const basic = extractEventsFromTextBasic(extractionText);
-                meals = basic.meals as MealEvent[];
-                workouts = basic.workouts as WorkoutEvent[];
+            const llmEvents = await llmProvider.extractStructuredEvents(extractionText, dateHint);
+            meals = llmEvents.meals;
+            workouts = llmEvents.workouts;
+            sleepEvents = llmEvents.sleepEvents;
+
+            // Strict LLM-first behavior for document mode: if parsing produced nothing, fail fast.
+            if (meals.length === 0 && workouts.length === 0 && sleepEvents.length === 0) {
+                return NextResponse.json(
+                    { error: "ChatGPT could not parse events from your notes. Please add clearer timestamps (e.g. 9:05am, 12:32pm) and try again." },
+                    { status: 422 },
+                );
             }
         }
 
