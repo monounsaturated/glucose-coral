@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DemoPreview } from "./components/demo-preview";
 import { Brand } from "./components/brand";
+import { TypewriterDemo } from "./components/typewriter-demo";
 
 export default function LandingPage() {
   return (
@@ -98,7 +99,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Demo Preview */}
+      {/* Typewriter / input demo */}
+      <section className="pb-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>Just Write Your Notes</h2>
+            <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
+              Type freely in any language — AI parses meals, workouts, and sleep
+              into structured data with macro estimates.
+            </p>
+          </div>
+          <TypewriterDemo />
+        </div>
+      </section>
+
+      {/* Chart Demo Preview */}
       <section className="pb-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">

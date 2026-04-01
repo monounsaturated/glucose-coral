@@ -22,15 +22,36 @@ export type GlucoseReading = z.infer<typeof GlucoseReadingSchema>;
 export const CarbsSourceSchema = z.enum(['csv-provided', 'llm-estimated', 'unknown']);
 export type CarbsSource = z.infer<typeof CarbsSourceSchema>;
 
+// ─── Macros ────────────────────────────────────────────────
+export const MacroSourceSchema = z.enum(['llm-estimated', 'provided', 'unknown']);
+export type MacroSource = z.infer<typeof MacroSourceSchema>;
+
+export const MealLabelSchema = z.enum(['Breakfast', 'Lunch', 'Dinner', 'Snack']);
+export type MealLabel = z.infer<typeof MealLabelSchema>;
+
+export const CarbBreakdownSchema = z.object({
+    starchGrams: z.number().nullable(),
+    sugarGrams: z.number().nullable(),
+    fructoseGrams: z.number().nullable(),
+    glucoseGrams: z.number().nullable(),
+});
+export type CarbBreakdown = z.infer<typeof CarbBreakdownSchema>;
+
 // ─── Meal Events ───────────────────────────────────────────
 export const MealEventSchema = z.object({
     id: z.string(),
     timestamp: z.string(),
     rawTimestamp: z.string(),
     name: z.string().optional(),
+    mealLabel: MealLabelSchema.nullable().optional(),
     ingredients: z.array(z.string()).optional(),
     carbsGrams: z.number().nullable(),
     carbsSource: CarbsSourceSchema,
+    proteinGrams: z.number().nullable().optional(),
+    fatGrams: z.number().nullable().optional(),
+    fiberGrams: z.number().nullable().optional(),
+    carbBreakdown: CarbBreakdownSchema.nullable().optional(),
+    macroSource: MacroSourceSchema.optional(),
     notes: z.string().optional(),
     source: z.enum(['csv', 'document']),
 });
@@ -50,6 +71,17 @@ export const WorkoutEventSchema = z.object({
     source: z.enum(['csv', 'document']),
 });
 export type WorkoutEvent = z.infer<typeof WorkoutEventSchema>;
+
+// ─── Sleep Events ──────────────────────────────────────────
+export const SleepEventSchema = z.object({
+    id: z.string(),
+    sleepStart: z.string(),
+    sleepEnd: z.string(),
+    durationMinutes: z.number().nullable(),
+    notes: z.string().optional(),
+    source: z.literal('document'),
+});
+export type SleepEvent = z.infer<typeof SleepEventSchema>;
 
 // ─── Meal Analysis Flags ───────────────────────────────────
 export const MealFlagSchema = z.enum([
@@ -102,6 +134,7 @@ export const AnalysisOutputSchema = z.object({
     glucoseReadings: z.array(GlucoseReadingSchema),
     mealEvents: z.array(MealEventSchema),
     workoutEvents: z.array(WorkoutEventSchema),
+    sleepEvents: z.array(SleepEventSchema).optional(),
     mealAnalyses: z.array(MealAnalysisResultSchema),
     summary: GeneratedSummarySchema.nullable(),
     crossMealInsights: z.object({
@@ -144,9 +177,10 @@ export type DocumentExtraction = z.infer<typeof DocumentExtractionSchema>;
 
 // ─── LLM Provider Interface Types ──────────────────────────
 export interface LLMProvider {
-    extractStructuredEvents(text: string): Promise<{
+    extractStructuredEvents(text: string, dateHint?: string): Promise<{
         meals: MealEvent[];
         workouts: WorkoutEvent[];
+        sleepEvents: SleepEvent[];
     }>;
     estimateMealCarbs(mealDescription: string): Promise<number | null>;
     summarizeAnalysis(
@@ -154,5 +188,6 @@ export interface LLMProvider {
         meals: MealEvent[],
         workouts: WorkoutEvent[],
         analyses: MealAnalysisResult[],
+        sleepEvents?: SleepEvent[],
     ): Promise<string>;
 }

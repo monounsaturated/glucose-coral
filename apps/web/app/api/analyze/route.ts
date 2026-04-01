@@ -9,6 +9,7 @@ import type {
     InputMode,
     MealEvent,
     WorkoutEvent,
+    SleepEvent,
     LLMProvider,
 } from "@glucose/types";
 
@@ -104,10 +105,13 @@ export async function POST(request: NextRequest) {
 
         let meals: MealEvent[] = [];
         let workouts: WorkoutEvent[] = [];
+        let sleepEvents: SleepEvent[] = [];
         const llmProvider = createLLMProvider(process.env.OPENAI_API_KEY);
 
+        // Date hint: use the date of the first glucose reading
+        const dateHint = parsed.readings[0]?.timestamp?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+
         if (mode === "csv-food") {
-            // Use meals from CSV
             meals = parsed.meals;
         } else if (mode === "document-food") {
             // Extract events from uploaded file or plain text notes
@@ -118,21 +122,20 @@ export async function POST(request: NextRequest) {
                 extractionText = extraction.text;
             }
 
-            // Try LLM extraction first, fall back to regex
+            // LLM extraction (with full macro/sleep parsing), fall back to regex
             try {
-                const llmEvents = await llmProvider.extractStructuredEvents(
-                    extractionText
-                );
+                const llmEvents = await llmProvider.extractStructuredEvents(extractionText, dateHint);
                 meals = llmEvents.meals;
                 workouts = llmEvents.workouts;
+                sleepEvents = llmEvents.sleepEvents;
             } catch {
-                // Fall back to basic extraction
                 const basicEvents = extractEventsFromTextBasic(extractionText);
                 meals = basicEvents.meals as MealEvent[];
                 workouts = basicEvents.workouts as WorkoutEvent[];
             }
         }
 
+        // For CSV meals that don't already have macros, estimate carbs only
         meals = await enrichMealsWithCarbEstimates(meals, llmProvider);
 
         // Run analytics
@@ -146,10 +149,10 @@ export async function POST(request: NextRequest) {
                 parsed.readings,
                 meals,
                 workouts,
-                mealAnalyses
+                mealAnalyses,
+                sleepEvents
             );
         } catch {
-            // Fallback summary
             const avgGlucose = Math.round(
                 parsed.readings.reduce((s, r) => s + r.value, 0) / parsed.readings.length
             );
@@ -167,6 +170,7 @@ export async function POST(request: NextRequest) {
             glucoseReadings: parsed.readings,
             mealEvents: meals,
             workoutEvents: workouts,
+            sleepEvents,
             mealAnalyses,
             summary: {
                 text: summaryText,
@@ -175,7 +179,6 @@ export async function POST(request: NextRequest) {
             crossMealInsights: insights,
         };
 
-        // Return with the id for the results page
         return NextResponse.json({ ...result, id: runId });
     } catch (error) {
         console.error("Analysis error:", error);

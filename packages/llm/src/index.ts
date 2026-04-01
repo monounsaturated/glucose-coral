@@ -4,7 +4,9 @@ import type {
     MealEvent,
     WorkoutEvent,
     MealAnalysisResult,
+    SleepEvent,
 } from '@glucose/types';
+import { MEAL_PARSING_PROMPT } from './prompts';
 
 // ─── OpenAI Implementation ────────────────────────────────
 
@@ -27,78 +29,56 @@ export class OpenAIProvider implements LLMProvider {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userMessage },
             ],
-            temperature: 0.3,
-            max_tokens: 2000,
+            temperature: 0.2,
+            max_tokens: 4000,
         });
 
         return response.choices[0]?.message?.content ?? '';
     }
 
-    async extractStructuredEvents(text: string): Promise<{
+    async extractStructuredEvents(text: string, dateHint?: string): Promise<{
         meals: MealEvent[];
         workouts: WorkoutEvent[];
+        sleepEvents: SleepEvent[];
     }> {
-        const systemPrompt = `You are a structured data extraction assistant. Extract meal and workout events from the provided text.
+        const userMessage = dateHint
+            ? `Date hint (use if no date in notes): ${dateHint}\n\n${text}`
+            : text;
 
-    Return ONLY valid JSON in this exact format:
-    {
-      "meals": [
-        {
-          "id": "doc-meal-1",
-          "timestamp": "YYYY-MM-DDTHH:mm:00",
-          "rawTimestamp": "original timestamp from text",
-          "name": "short meal description",
-          "ingredients": ["ingredient1", "ingredient2"],
-          "carbsGrams": null,
-          "carbsSource": "unknown",
-          "notes": "any additional notes",
-          "source": "document"
-        }
-      ],
-      "workouts": [
-        {
-          "id": "doc-workout-1",
-          "timestamp": "YYYY-MM-DDTHH:mm:00",
-          "rawTimestamp": "original timestamp from text",
-          "type": "walk|jogging|resistance",
-          "durationMinutes": 30,
-          "notes": "description",
-          "source": "document"
-        }
-      ]
-    }
-
-    Expect timestamps in DD-MM-YYYY HH:mm format. Convert them to ISO format.
-    For workout type, use only: walk, jogging, resistance.
-    If carbs are mentioned, include them. Otherwise set carbsGrams to null.`;
-
-        const response = await this.chat(systemPrompt, text);
+        const response = await this.chat(MEAL_PARSING_PROMPT, userMessage);
 
         try {
-            // Extract JSON from response (handle markdown code blocks)
-            const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response];
-            const parsed = JSON.parse(jsonMatch[1] ?? response);
+            // Strip markdown code fences if the model wraps output despite instructions
+            const cleaned = response
+                .replace(/^```(?:json)?\s*/i, '')
+                .replace(/\s*```$/i, '')
+                .trim();
+            const parsed = JSON.parse(cleaned);
             return {
                 meals: parsed.meals ?? [],
                 workouts: parsed.workouts ?? [],
+                sleepEvents: parsed.sleepEvents ?? [],
             };
         } catch {
-            console.error('Failed to parse LLM response for event extraction');
-            return { meals: [], workouts: [] };
+            console.error('Failed to parse LLM response for event extraction:', response.slice(0, 200));
+            return { meals: [], workouts: [], sleepEvents: [] };
         }
     }
 
     async estimateMealCarbs(mealDescription: string): Promise<number | null> {
         const systemPrompt = `You are a nutrition estimation assistant. Estimate the total carbohydrates in grams for the described meal.
-    Return ONLY a JSON object: { "carbsGrams": <number or null>, "confidence": "low|medium|high" }
-    If you cannot estimate, return { "carbsGrams": null, "confidence": "low" }.
-    Be conservative. This is a rough estimate only.`;
+Return ONLY a JSON object: { "carbsGrams": <number or null>, "confidence": "low|medium|high" }
+If you cannot estimate, return { "carbsGrams": null, "confidence": "low" }.
+Be conservative. This is a rough estimate only.`;
 
         const response = await this.chat(systemPrompt, mealDescription);
 
         try {
-            const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response];
-            const parsed = JSON.parse(jsonMatch[1] ?? response);
+            const cleaned = response
+                .replace(/^```(?:json)?\s*/i, '')
+                .replace(/\s*```$/i, '')
+                .trim();
+            const parsed = JSON.parse(cleaned);
             return parsed.carbsGrams ?? null;
         } catch {
             return null;
@@ -110,31 +90,42 @@ export class OpenAIProvider implements LLMProvider {
         meals: MealEvent[],
         workouts: WorkoutEvent[],
         analyses: MealAnalysisResult[],
+        sleepEvents?: SleepEvent[],
     ): Promise<string> {
         const systemPrompt = `You are a glucose data analysis assistant. Summarize the analysis results in a clear, friendly, and insightful way.
 
-    IMPORTANT RULES:
-    - This is NOT a medical device or diagnostic tool
-    - Use careful language: "appears associated with", "seems correlated with", "may be linked to"
-    - NEVER say: "caused", "proved", "definitively improves"
-    - Keep the summary to 3-5 short paragraphs
-    - Highlight interesting patterns
-    - Mention specific foods and their apparent effects
-    - Mention any workout benefits observed
-    - Be encouraging and helpful`;
+IMPORTANT RULES:
+- This is NOT a medical device or diagnostic tool
+- Use careful language: "appears associated with", "seems correlated with", "may be linked to"
+- NEVER say: "caused", "proved", "definitively improves"
+- Keep the summary to 3-5 short paragraphs
+- Highlight interesting patterns between meals, exercise, and glucose
+- Mention specific foods and their apparent effects
+- If sleep data is present, note any patterns with fasting glucose
+- Mention any workout benefits observed
+- Be encouraging and helpful`;
 
         const summaryData = {
             totalReadings: readings.length,
             totalMeals: meals.length,
             totalWorkouts: workouts.length,
+            totalSleepEvents: sleepEvents?.length ?? 0,
             mealAnalyses: analyses.map((a) => {
                 const meal = meals.find((m) => m.id === a.mealId);
                 return {
                     mealName: meal?.name,
+                    mealLabel: meal?.mealLabel,
                     ingredients: meal?.ingredients,
+                    carbsGrams: meal?.carbsGrams,
+                    proteinGrams: meal?.proteinGrams,
+                    fatGrams: meal?.fatGrams,
                     ...a,
                 };
             }),
+            sleepSummary: sleepEvents?.map((s) => ({
+                durationMinutes: s.durationMinutes,
+                notes: s.notes,
+            })),
             avgGlucose: Math.round(
                 readings.reduce((s, r) => s + r.value, 0) / readings.length,
             ),
@@ -152,11 +143,12 @@ export class OpenAIProvider implements LLMProvider {
 // ─── Stub Provider (for demo / no API key) ─────────────────
 
 export class StubLLMProvider implements LLMProvider {
-    async extractStructuredEvents(_text: string): Promise<{
+    async extractStructuredEvents(_text: string, _dateHint?: string): Promise<{
         meals: MealEvent[];
         workouts: WorkoutEvent[];
+        sleepEvents: SleepEvent[];
     }> {
-        return { meals: [], workouts: [] };
+        return { meals: [], workouts: [], sleepEvents: [] };
     }
 
     async estimateMealCarbs(_desc: string): Promise<number | null> {
@@ -168,6 +160,7 @@ export class StubLLMProvider implements LLMProvider {
         meals: MealEvent[],
         _workouts: WorkoutEvent[],
         analyses: MealAnalysisResult[],
+        _sleepEvents?: SleepEvent[],
     ): Promise<string> {
         const avgGlucose = Math.round(
             readings.reduce((s, r) => s + r.value, 0) / readings.length,
