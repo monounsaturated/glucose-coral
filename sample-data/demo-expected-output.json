@@ -1,0 +1,18 @@
+{
+    "description": "Expected output shape for demo data validation",
+    "totalReadings": 165,
+    "totalMeals": 9,
+    "expectedHighImpactMeals": [
+        "White rice with curry",
+        "Potato hash with eggs",
+        "Steak with mashed potato"
+    ],
+    "expectedLowImpactMeals": [
+        "Grilled chicken salad",
+        "Greek yogurt with berries"
+    ],
+    "expectedWalkBenefits": [
+        "Grilled salmon with sweet potato had a walk nearby",
+        "Pasta with tomato sauce had a walk nearby"
+    ]
+}
