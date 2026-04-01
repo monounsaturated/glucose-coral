@@ -4,8 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { Utensils, Footprints, Moon, Sparkles } from "lucide-react";
 
 const DEMO_TEXT = `9:05am : 1 banana, 2 eggs and a cookies and cream clif bar
-12:32pm :
-- miso soup, cabbage salad, a regular bowl of rice and 12 salmon sashimi
+12:32pm : miso soup, cabbage salad, a regular bowl of rice and 12 salmon sashimi
 1:30pm : 20mn walk
 4:10pm : 1 pear and 5 walnuts
 7:10pm : 1 medium sweet potato, half an avocado, around 150 grams of chicken and a slice of apple pie`;
