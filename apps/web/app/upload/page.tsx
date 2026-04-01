@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Brand } from "../components/brand";
 import { Activity, Upload, FileText, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function UploadPage() {
@@ -101,8 +102,7 @@ export default function UploadPage() {
             <nav className="fixed top-0 w-full z-50 glass">
                 <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-[var(--color-glucose)]" />
-                        <span className="font-bold text-sm">Glucose Explorer</span>
+                        <Brand />
                     </Link>
                     <Link href="/demo" className="btn-secondary text-xs py-2 px-4">
                         Try Demo

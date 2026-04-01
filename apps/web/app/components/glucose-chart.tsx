@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ComponentType } from "react";
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    ReferenceLine,
-    ReferenceArea,
+    LineChart as RechartsLineChart,
+    Line as RechartsLine,
+    XAxis as RechartsXAxis,
+    YAxis as RechartsYAxis,
+    CartesianGrid as RechartsCartesianGrid,
+    Tooltip as RechartsTooltip,
+    ResponsiveContainer as RechartsResponsiveContainer,
+    ReferenceLine as RechartsReferenceLine,
+    ReferenceArea as RechartsReferenceArea,
+    Scatter as RechartsScatter,
 } from "recharts";
 import type {
     GlucoseReading,
@@ -19,6 +21,18 @@ import type {
     MealAnalysisResult,
 } from "@glucose/types";
 import { Utensils, Footprints } from "lucide-react";
+
+const XAxisComponent = RechartsXAxis as unknown as ComponentType<Record<string, unknown>>;
+const YAxisComponent = RechartsYAxis as unknown as ComponentType<Record<string, unknown>>;
+const TooltipComponent = RechartsTooltip as unknown as ComponentType<Record<string, unknown>>;
+const LineChartComponent = RechartsLineChart as unknown as ComponentType<Record<string, unknown>>;
+const LineComponent = RechartsLine as unknown as ComponentType<Record<string, unknown>>;
+const CartesianGridComponent = RechartsCartesianGrid as unknown as ComponentType<Record<string, unknown>>;
+const ResponsiveContainerComponent =
+    RechartsResponsiveContainer as unknown as ComponentType<Record<string, unknown>>;
+const ReferenceLineComponent = RechartsReferenceLine as unknown as ComponentType<Record<string, unknown>>;
+const ReferenceAreaComponent = RechartsReferenceArea as unknown as ComponentType<Record<string, unknown>>;
+const ScatterComponent = RechartsScatter as unknown as ComponentType<Record<string, unknown>>;
 
 type TimeRange = "1d" | "7d" | "14d";
 
@@ -43,6 +57,14 @@ function formatDate(ts: string): string {
 
 function formatDateTime(ts: string): string {
     return `${formatDate(ts)} ${formatTime(ts)}`;
+}
+
+function formatDayHeading(ts: string): string {
+    return new Date(ts).toLocaleDateString("en-US", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+    });
 }
 
 export function GlucoseChart({
@@ -107,7 +129,7 @@ export function GlucoseChart({
         });
     }, [filteredMeals, chartData]);
 
-    const workoutMarkerPositions = useMemo(() => {
+    const workoutMarkerIndices = useMemo(() => {
         return filteredWorkouts.map((w) => {
             let closest = 0;
             let minDiff = Infinity;
@@ -123,6 +145,75 @@ export function GlucoseChart({
             return { workout: w, index: closest, glucose: chartData[closest]?.glucose ?? 0 };
         });
     }, [filteredWorkouts, chartData]);
+
+    const groupedBadges = useMemo(() => {
+        const mealsSorted = [...filteredMeals].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+        const workoutsSorted = [...filteredWorkouts].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+        const mealCountsByDay = new Map<string, number>();
+        const workoutCountsByDay = new Map<string, number>();
+        const grouped = new Map<
+            string,
+            {
+                heading: string;
+                items: Array<
+                    | { id: string; type: "meal"; label: string; mealId: string; impactClass: string; timestamp: string }
+                    | { id: string; type: "workout"; label: string; workoutId: string; workoutType: string; duration: number | null; timestamp: string }
+                >;
+            }
+        >();
+
+        for (const meal of mealsSorted) {
+            const dayKey = meal.timestamp.slice(0, 10);
+            const mealCount = (mealCountsByDay.get(dayKey) ?? 0) + 1;
+            mealCountsByDay.set(dayKey, mealCount);
+            const impact = analysisMap.get(meal.id)?.impactLabel;
+            const impactClass =
+                impact === "high" ? "impact-high" : impact === "moderate" ? "impact-moderate" : "impact-low";
+
+            const group = grouped.get(dayKey) ?? {
+                heading: formatDayHeading(meal.timestamp),
+                items: [],
+            };
+            group.items.push({
+                id: meal.id,
+                type: "meal",
+                label: `Meal ${mealCount}`,
+                mealId: meal.id,
+                impactClass,
+                timestamp: meal.timestamp,
+            });
+            grouped.set(dayKey, group);
+        }
+
+        for (const workout of workoutsSorted) {
+            const dayKey = workout.timestamp.slice(0, 10);
+            const workoutCount = (workoutCountsByDay.get(dayKey) ?? 0) + 1;
+            workoutCountsByDay.set(dayKey, workoutCount);
+
+            const group = grouped.get(dayKey) ?? {
+                heading: formatDayHeading(workout.timestamp),
+                items: [],
+            };
+            group.items.push({
+                id: workout.id,
+                type: "workout",
+                label: `Workout ${workoutCount}`,
+                workoutId: workout.id,
+                workoutType: workout.type,
+                duration: workout.durationMinutes ?? null,
+                timestamp: workout.timestamp,
+            });
+            grouped.set(dayKey, group);
+        }
+
+        return [...grouped.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([, value]) => ({
+                heading: value.heading,
+                items: value.items.sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
+            }));
+    }, [filteredMeals, filteredWorkouts, analysisMap]);
 
     // Custom tick showing fewer labels for 7d/14d
     const tickInterval = timeRange === "1d" ? 4 : timeRange === "7d" ? 16 : 32;
@@ -150,58 +241,58 @@ export function GlucoseChart({
 
             {/* Chart */}
             <div className="card p-4" style={{ height: 360 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                <ResponsiveContainerComponent width="100%" height="100%">
+                    <LineChartComponent data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                         <defs>
                             <linearGradient id="glucoseGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
                                 <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e1e3a" />
-                        <XAxis
+                        <CartesianGridComponent strokeDasharray="3 3" stroke="var(--color-border)" />
+                        <XAxisComponent
                             dataKey="label"
-                            tick={{ fill: "#6868a0", fontSize: 10 }}
+                            tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
                             interval={tickInterval}
-                            axisLine={{ stroke: "#2a2a3e" }}
+                            axisLine={{ stroke: "var(--color-border)" }}
                         />
-                        <YAxis
+                        <YAxisComponent
                             domain={[60, 200]}
-                            tick={{ fill: "#6868a0", fontSize: 10 }}
-                            axisLine={{ stroke: "#2a2a3e" }}
+                            tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
+                            axisLine={{ stroke: "var(--color-border)" }}
                             label={{
                                 value: "mg/dL",
                                 angle: -90,
                                 position: "insideLeft",
-                                style: { fill: "#6868a0", fontSize: 10 },
+                                style: { fill: "var(--color-text-muted)", fontSize: 10 },
                             }}
                         />
-                        <Tooltip
+                        <TooltipComponent
                             contentStyle={{
-                                background: "#12121a",
-                                border: "1px solid #2a2a3e",
+                                background: "var(--color-surface)",
+                                border: "1px solid var(--color-border)",
                                 borderRadius: "8px",
-                                color: "#e8e8f0",
+                                color: "var(--color-text-primary)",
                                 fontSize: 12,
                             }}
-                            labelFormatter={(label) => `Time: ${label}`}
-                            formatter={(value: number) => [`${value} mg/dL`, "Glucose"]}
+                            labelFormatter={(label: string | number) => `Time: ${label}`}
+                            formatter={(value: string | number) => [`${value} mg/dL`, "Glucose"]}
                         />
 
                         {/* Normal range band */}
-                        <ReferenceArea
+                        <ReferenceAreaComponent
                             y1={70}
                             y2={180}
                             fill="#22c55e"
                             fillOpacity={0.03}
                         />
-                        <ReferenceLine
+                        <ReferenceLineComponent
                             y={70}
                             stroke="#22c55e"
                             strokeDasharray="3 3"
                             strokeOpacity={0.3}
                         />
-                        <ReferenceLine
+                        <ReferenceLineComponent
                             y={180}
                             stroke="#ef4444"
                             strokeDasharray="3 3"
@@ -210,22 +301,15 @@ export function GlucoseChart({
 
                         {/* Meal markers as reference lines */}
                         {mealMarkerIndices.map(({ meal }) => {
-                            const analysis = analysisMap.get(meal.id);
-                            const color =
-                                analysis?.impactLabel === "high"
-                                    ? "#ef4444"
-                                    : analysis?.impactLabel === "moderate"
-                                        ? "#f59e0b"
-                                        : "#22c55e";
                             return (
-                                <ReferenceLine
+                                <ReferenceLineComponent
                                     key={meal.id}
                                     x={
                                         timeRange === "1d"
                                             ? formatTime(meal.timestamp)
                                             : formatDateTime(meal.timestamp)
                                     }
-                                    stroke={color}
+                                    stroke="var(--color-meal-marker)"
                                     strokeDasharray="4 4"
                                     strokeOpacity={0.7}
                                 />
@@ -233,21 +317,46 @@ export function GlucoseChart({
                         })}
 
                         {/* Workout markers */}
-                        {workoutMarkerPositions.map(({ workout }) => (
-                            <ReferenceLine
+                        {workoutMarkerIndices.map(({ workout }) => (
+                            <ReferenceLineComponent
                                 key={workout.id}
                                 x={
                                     timeRange === "1d"
                                         ? formatTime(workout.timestamp)
                                         : formatDateTime(workout.timestamp)
                                 }
-                                stroke="#10b981"
+                                stroke="var(--color-workout-marker)"
                                 strokeDasharray="2 6"
                                 strokeOpacity={0.5}
                             />
                         ))}
 
-                        <Line
+                        <ScatterComponent
+                            data={mealMarkerIndices.map(({ meal, glucose }) => ({
+                                label: timeRange === "1d" ? formatTime(meal.timestamp) : formatDateTime(meal.timestamp),
+                                glucose,
+                                mealId: meal.id,
+                            }))}
+                            dataKey="glucose"
+                            fill="var(--color-meal-marker)"
+                            shape="circle"
+                            onClick={(point: { payload?: { mealId?: string }; mealId?: string }) => {
+                                const mealId = point?.payload?.mealId ?? point?.mealId;
+                                if (mealId) onMealSelect?.(mealId);
+                            }}
+                        />
+
+                        <ScatterComponent
+                            data={workoutMarkerIndices.map(({ workout, glucose }) => ({
+                                label: timeRange === "1d" ? formatTime(workout.timestamp) : formatDateTime(workout.timestamp),
+                                glucose,
+                            }))}
+                            dataKey="glucose"
+                            fill="var(--color-workout-marker)"
+                            shape="triangle"
+                        />
+
+                        <LineComponent
                             type="monotone"
                             dataKey="glucose"
                             stroke="#22d3ee"
@@ -255,40 +364,40 @@ export function GlucoseChart({
                             dot={false}
                             activeDot={{ r: 4, fill: "#22d3ee", stroke: "#0a0a0f", strokeWidth: 2 }}
                         />
-                    </LineChart>
-                </ResponsiveContainer>
+                    </LineChartComponent>
+                </ResponsiveContainerComponent>
             </div>
 
-            {/* Event Legend */}
-            <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-secondary)]">
-                {filteredMeals.map((meal) => {
-                    const analysis = analysisMap.get(meal.id);
-                    const impactClass =
-                        analysis?.impactLabel === "high"
-                            ? "impact-high"
-                            : analysis?.impactLabel === "moderate"
-                                ? "impact-moderate"
-                                : "impact-low";
-                    return (
-                        <button
-                            key={meal.id}
-                            onClick={() => onMealSelect?.(meal.id)}
-                            className={`flex items-center gap-1.5 badge ${impactClass} cursor-pointer transition-transform hover:scale-105 ${selectedMealId === meal.id ? "ring-2 ring-[var(--color-accent)]" : ""
-                                }`}
-                        >
-                            <Utensils className="w-3 h-3" />
-                            {meal.name ?? "Meal"}
-                        </button>
-                    );
-                })}
-                {filteredWorkouts.map((w) => (
-                    <span
-                        key={w.id}
-                        className="flex items-center gap-1.5 badge bg-[var(--color-workout-bg)] text-[var(--color-workout)]"
-                    >
-                        <Footprints className="w-3 h-3" />
-                        {w.type} {w.durationMinutes ? `(${w.durationMinutes}m)` : ""}
-                    </span>
+            {/* Event badges grouped by day */}
+            <div className="space-y-3">
+                {groupedBadges.map((group) => (
+                    <div key={group.heading} className="space-y-2">
+                        <p className="text-xs font-medium text-[var(--color-text-secondary)]">{group.heading}</p>
+                        <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+                            {group.items.map((item) =>
+                                item.type === "meal" ? (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => onMealSelect?.(item.mealId)}
+                                        className={`flex items-center gap-1.5 badge ${item.impactClass} cursor-pointer transition-transform hover:scale-105 ${selectedMealId === item.mealId ? "ring-2 ring-[var(--color-accent)]" : ""
+                                            }`}
+                                    >
+                                        <Utensils className="w-3 h-3" />
+                                        {item.label}
+                                    </button>
+                                ) : (
+                                    <span
+                                        key={item.id}
+                                        className="flex items-center gap-1.5 badge bg-[var(--color-workout-bg)] text-[var(--color-workout)]"
+                                    >
+                                        <Footprints className="w-3 h-3" />
+                                        {item.label}
+                                        {item.duration ? ` (${item.duration}m)` : ""}
+                                    </span>
+                                )
+                            )}
+                        </div>
+                    </div>
                 ))}
             </div>
         </div>

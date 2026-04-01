@@ -31,9 +31,10 @@ async function extractPdfText(
     fileName: string,
 ): Promise<DocumentExtraction> {
     // Dynamic import to keep pdf-parse optional for environments that don't need it
-    let pdfParse: typeof import('pdf-parse');
+    let parsePdf: (dataBuffer: Buffer) => Promise<{ text: string; numpages: number }>;
     try {
-        pdfParse = await import('pdf-parse');
+        const pdfParseModule = await import('pdf-parse');
+        parsePdf = (pdfParseModule as { default: (dataBuffer: Buffer) => Promise<{ text: string; numpages: number }> }).default;
     } catch {
         throw new Error(
             'PDF parsing requires the pdf-parse package. Install it with: npm install pdf-parse',
@@ -43,7 +44,7 @@ async function extractPdfText(
     const buffer = typeof content === 'string' ? Buffer.from(content, 'base64') : content;
 
     try {
-        const data = await pdfParse.default(buffer);
+        const data = await parsePdf(buffer);
 
         if (!data.text || data.text.trim().length === 0) {
             throw new Error(

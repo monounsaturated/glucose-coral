@@ -146,7 +146,7 @@ export async function saveSummary(
 // ─── SQL Migration (for reference) ────────────────────────
 
 export const MIGRATION_SQL = `
--- Glucose Response Explorer V1 Schema
+-- Glucose Coral V1 Schema
 
 CREATE TABLE IF NOT EXISTS analysis_runs (
   id TEXT PRIMARY KEY,

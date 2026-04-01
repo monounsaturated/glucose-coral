@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Glucose Response Explorer — Understand Your Glucose Patterns",
+  title: "Glucose Coral — Understand Your Glucose Patterns",
   description:
     "Upload your Abbott FreeStyle Libre data and explore how meals and workouts affect your glucose levels. Interactive charts, deterministic analytics, and AI-powered insights.",
   keywords: ["glucose", "CGM", "FreeStyle Libre", "nutrition", "health analytics"],
@@ -23,7 +23,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
           rel="stylesheet"
         />
       </head>

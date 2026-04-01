@@ -9,7 +9,49 @@ import type {
     InputMode,
     MealEvent,
     WorkoutEvent,
+    LLMProvider,
 } from "@glucose/types";
+
+function mealDescriptionForCarbEstimate(meal: MealEvent): string | null {
+    const chunks = [meal.name, meal.ingredients?.join(", "), meal.notes]
+        .map((part) => part?.trim())
+        .filter((part): part is string => Boolean(part));
+    if (chunks.length === 0) return null;
+    return chunks.join(" | ");
+}
+
+async function enrichMealsWithCarbEstimates(
+    meals: MealEvent[],
+    llmProvider: LLMProvider
+): Promise<MealEvent[]> {
+    const enriched = await Promise.all(
+        meals.map(async (meal) => {
+            if (meal.carbsGrams !== null && meal.carbsGrams !== undefined) {
+                return meal;
+            }
+
+            const description = mealDescriptionForCarbEstimate(meal);
+            if (!description) {
+                return meal;
+            }
+
+            try {
+                const estimate = await llmProvider.estimateMealCarbs(description);
+                if (estimate === null) {
+                    return meal;
+                }
+                return {
+                    ...meal,
+                    carbsGrams: estimate,
+                    carbsSource: "llm-estimated" as const,
+                };
+            } catch {
+                return meal;
+            }
+        })
+    );
+    return enriched;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -61,6 +103,7 @@ export async function POST(request: NextRequest) {
 
         let meals: MealEvent[] = [];
         let workouts: WorkoutEvent[] = [];
+        const llmProvider = createLLMProvider(process.env.OPENAI_API_KEY);
 
         if (mode === "csv-food") {
             // Use meals from CSV
@@ -71,7 +114,6 @@ export async function POST(request: NextRequest) {
             const extraction = await extractDocumentText(docBuffer, documentFile.name);
 
             // Try LLM extraction first, fall back to regex
-            const llmProvider = createLLMProvider(process.env.OPENAI_API_KEY);
             try {
                 const llmEvents = await llmProvider.extractStructuredEvents(
                     extraction.text
@@ -86,12 +128,13 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        meals = await enrichMealsWithCarbEstimates(meals, llmProvider);
+
         // Run analytics
         const mealAnalyses = analyzeAllMeals(parsed.readings, meals, workouts);
         const insights = generateCrossMealInsights(meals, mealAnalyses, workouts);
 
         // Generate summary
-        const llmProvider = createLLMProvider(process.env.OPENAI_API_KEY);
         let summaryText: string;
         try {
             summaryText = await llmProvider.summarizeAnalysis(

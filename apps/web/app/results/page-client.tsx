@@ -6,7 +6,8 @@ import Link from "next/link";
 import { GlucoseChart } from "../components/glucose-chart";
 import { EventDetailPanel } from "../components/event-detail-panel";
 import { SummaryBlock } from "../components/summary-block";
-import { Activity, ArrowLeft, Upload, Loader2 } from "lucide-react";
+import { Brand } from "../components/brand";
+import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import type { AnalysisOutput } from "@glucose/types";
 
 export default function ResultsPage() {
@@ -84,8 +85,7 @@ export default function ResultsPage() {
             <nav className="fixed top-0 w-full z-50 glass">
                 <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-[var(--color-glucose)]" />
-                        <span className="font-bold text-sm">Glucose Explorer</span>
+                        <Brand />
                     </Link>
                     <Link href="/upload" className="btn-primary text-xs py-2 px-4">
                         <Upload className="w-3 h-3" />
