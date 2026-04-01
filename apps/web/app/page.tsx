@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Activity,
   Upload,
   BarChart3,
   Zap,
@@ -10,6 +9,7 @@ import {
   Footprints,
 } from "lucide-react";
 import { DemoPreview } from "./components/demo-preview";
+import { Brand } from "./components/brand";
 
 export default function LandingPage() {
   return (
@@ -17,10 +17,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 glass">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[var(--color-glucose)]" />
-            <span className="font-bold text-sm">Glucose Explorer</span>
-          </div>
+          <Brand compact />
           <div className="flex items-center gap-3">
             <Link href="/demo" className="btn-secondary text-xs py-2 px-4">
               Try Demo
@@ -180,10 +177,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--color-border)] py-6 px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between text-xs text-[var(--color-text-muted)]">
-          <div className="flex items-center gap-2">
-            <Activity className="w-3 h-3" />
-            Glucose Response Explorer
-          </div>
+          <div>Glucose Coral</div>
           <p>Exploratory analytics tool — not medical advice</p>
         </div>
       </footer>

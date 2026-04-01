@@ -1,28 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0f;
-  --color-surface: #12121a;
-  --color-surface-elevated: #1a1a2e;
-  --color-border: #2a2a3e;
-  --color-border-hover: #3a3a5e;
-  --color-text-primary: #e8e8f0;
-  --color-text-secondary: #9898b0;
-  --color-text-muted: #6868a0;
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
-  --color-accent-subtle: rgba(99, 102, 241, 0.1);
-  --color-glucose: #22d3ee;
-  --color-glucose-glow: rgba(34, 211, 238, 0.2);
-  --color-meal: #f59e0b;
-  --color-meal-bg: rgba(245, 158, 11, 0.15);
-  --color-workout: #10b981;
-  --color-workout-bg: rgba(16, 185, 129, 0.15);
+  --color-background: #fff2e6;
+  --color-surface: #fff8f2;
+  --color-surface-elevated: #ffefe0;
+  --color-border: #f3d2ba;
+  --color-border-hover: #ebb996;
+  --color-text-primary: #4a2a1a;
+  --color-text-secondary: #7a4b2d;
+  --color-text-muted: #a0643d;
+  --color-accent: #ff7f50;
+  --color-accent-hover: #ff915f;
+  --color-accent-subtle: rgba(255, 127, 80, 0.12);
+  --color-glucose: #0ea5a5;
+  --color-glucose-glow: rgba(14, 165, 165, 0.18);
+  --color-meal: #f97316;
+  --color-meal-bg: rgba(249, 115, 22, 0.14);
+  --color-workout: #2563eb;
+  --color-workout-bg: rgba(37, 99, 235, 0.14);
+  --color-logo: #ff6f3d;
+  --color-logo-bg: #ffe7d4;
   --color-spike-high: #ef4444;
   --color-spike-moderate: #f59e0b;
   --color-spike-low: #22c55e;
   --color-danger: #ef4444;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 @layer base {
@@ -46,13 +48,13 @@
 
 @layer components {
   .glass {
-    background: rgba(18, 18, 26, 0.7);
+    background: rgba(255, 248, 242, 0.86);
     backdrop-filter: blur(20px);
     border: 1px solid var(--color-border);
   }
 
   .glass-elevated {
-    background: rgba(26, 26, 46, 0.8);
+    background: rgba(255, 239, 224, 0.9);
     backdrop-filter: blur(20px);
     border: 1px solid var(--color-border);
   }
@@ -75,7 +77,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--color-accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--color-accent), #ff9a6f);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
@@ -91,7 +93,7 @@
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 20px rgba(255, 127, 80, 0.35);
   }
 
   .btn-secondary {
