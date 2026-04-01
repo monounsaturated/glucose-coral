@@ -52,6 +52,7 @@ export const MealEventSchema = z.object({
     fiberGrams: z.number().nullable().optional(),
     carbBreakdown: CarbBreakdownSchema.nullable().optional(),
     macroSource: MacroSourceSchema.optional(),
+    mealCommentary: z.string().optional(),
     notes: z.string().optional(),
     source: z.enum(['csv', 'document']),
 });
@@ -82,6 +83,67 @@ export const SleepEventSchema = z.object({
     source: z.literal('document'),
 });
 export type SleepEvent = z.infer<typeof SleepEventSchema>;
+
+// ─── LLM Full-Analysis Output ──────────────────────────────
+export const MealEnrichmentSchema = z.object({
+    mealId: z.string(),
+    carbsGrams: z.number().nullable().optional(),
+    proteinGrams: z.number().nullable().optional(),
+    fatGrams: z.number().nullable().optional(),
+    fiberGrams: z.number().nullable().optional(),
+    carbBreakdown: CarbBreakdownSchema.nullable().optional(),
+    macroSource: z.literal('llm-estimated').optional(),
+    carbsSource: z.enum(['llm-estimated', 'csv-provided', 'unknown']).optional(),
+    mealCommentary: z.string().optional(),
+    keyIngredientInsight: z.string().optional(),
+});
+export type MealEnrichment = z.infer<typeof MealEnrichmentSchema>;
+
+export const LLMInsightOutputSchema = z.object({
+    mealEnrichments: z.array(MealEnrichmentSchema),
+    overallPatterns: z.array(z.string()),
+    sleepGlucoseInsight: z.string().nullable(),
+    keyRecommendations: z.array(z.string()),
+    summaryText: z.string(),
+});
+export type LLMInsightOutput = z.infer<typeof LLMInsightOutputSchema>;
+
+// ─── Input type for the single analysis call ───────────────
+export interface MealForAnalysis {
+    id: string;
+    name?: string;
+    mealLabel?: MealLabel | null;
+    timestamp: string;
+    ingredients?: string[];
+    notes?: string;
+    carbsGrams: number | null;
+    glucoseCurve: Array<{ minutesOffset: number; value: number }>;
+    analytics: {
+        baseline: number | null;
+        peak: number | null;
+        peakDelta: number | null;
+        peakTimingMinutes: number | null;
+        isSpike: boolean | null;
+        impactLabel: string | null;
+    };
+    nearbyWorkouts: Array<{
+        type: string;
+        durationMinutes: number | null;
+        minutesAfterMeal: number;
+    }>;
+}
+
+export interface FullAnalysisInput {
+    meals: MealForAnalysis[];
+    workouts: Array<{ type: string; durationMinutes: number | null; timestamp: string }>;
+    sleepEvents: Array<{ sleepStart: string; sleepEnd: string; durationMinutes: number | null }>;
+    overallStats: {
+        avgGlucose: number;
+        timeInRange: number;
+        totalReadings: number;
+        dateRange: string;
+    };
+}
 
 // ─── Meal Analysis Flags ───────────────────────────────────
 export const MealFlagSchema = z.enum([
@@ -121,7 +183,7 @@ export const AnalysisRunSchema = z.object({
 });
 export type AnalysisRun = z.infer<typeof AnalysisRunSchema>;
 
-// ─── Generated Summary ────────────────────────────────────
+// ─── Generated Summary (legacy) ───────────────────────────
 export const GeneratedSummarySchema = z.object({
     text: z.string(),
     generatedAt: z.string(),
@@ -137,6 +199,7 @@ export const AnalysisOutputSchema = z.object({
     sleepEvents: z.array(SleepEventSchema).optional(),
     mealAnalyses: z.array(MealAnalysisResultSchema),
     summary: GeneratedSummarySchema.nullable(),
+    llmInsights: LLMInsightOutputSchema.optional(),
     crossMealInsights: z.object({
         highestImpactMeals: z.array(z.string()),
         foodsAssociatedWithSpikes: z.array(z.string()),
@@ -147,8 +210,8 @@ export const AnalysisOutputSchema = z.object({
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;
 
 // ─── File Validation ───────────────────────────────────────
-export const MAX_CSV_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-export const MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+export const MAX_CSV_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 export const ALLOWED_DOCUMENT_EXTENSIONS = ['.txt', '.md', '.pdf'] as const;
 
 // ─── Spike Constants ───────────────────────────────────────
@@ -175,7 +238,7 @@ export const DocumentExtractionSchema = z.object({
 });
 export type DocumentExtraction = z.infer<typeof DocumentExtractionSchema>;
 
-// ─── LLM Provider Interface Types ──────────────────────────
+// ─── LLM Provider Interface ────────────────────────────────
 export interface LLMProvider {
     extractStructuredEvents(text: string, dateHint?: string): Promise<{
         meals: MealEvent[];
@@ -183,6 +246,7 @@ export interface LLMProvider {
         sleepEvents: SleepEvent[];
     }>;
     estimateMealCarbs(mealDescription: string): Promise<number | null>;
+    generateFullAnalysis(input: FullAnalysisInput): Promise<LLMInsightOutput>;
     summarizeAnalysis(
         readings: GlucoseReading[],
         meals: MealEvent[],

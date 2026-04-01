@@ -183,6 +183,18 @@ export function EventDetailPanel({ meal, analysis, onClose }: EventDetailPanelPr
                 </div>
             )}
 
+            {/* AI Commentary */}
+            {meal.mealCommentary && (
+                <div className="mb-4 rounded-xl px-4 py-3" style={{ background: "var(--color-accent-subtle)" }}>
+                    <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-accent-hover)" }}>
+                        AI INSIGHT
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                        {meal.mealCommentary}
+                    </p>
+                </div>
+            )}
+
             {/* Notes */}
             {meal.notes && (
                 <div className="mb-4">

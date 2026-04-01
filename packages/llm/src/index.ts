@@ -5,8 +5,10 @@ import type {
     WorkoutEvent,
     MealAnalysisResult,
     SleepEvent,
+    FullAnalysisInput,
+    LLMInsightOutput,
 } from '@glucose/types';
-import { MEAL_PARSING_PROMPT } from './prompts';
+import { MEAL_PARSING_PROMPT, FULL_ANALYSIS_PROMPT } from './prompts';
 
 // ─── OpenAI Implementation ────────────────────────────────
 
@@ -19,21 +21,37 @@ export class OpenAIProvider implements LLMProvider {
         this.model = model;
     }
 
-    private async chat(systemPrompt: string, userMessage: string): Promise<string> {
+    private async chat(
+        systemPrompt: string,
+        userMessage: string,
+        opts?: { model?: string; maxTokens?: number },
+    ): Promise<string> {
         const { default: OpenAI } = await import('openai');
         const client = new OpenAI({ apiKey: this.apiKey });
 
         const response = await client.chat.completions.create({
-            model: this.model,
+            model: opts?.model ?? this.model,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userMessage },
             ],
             temperature: 0.2,
-            max_tokens: 4000,
+            max_tokens: opts?.maxTokens ?? 4000,
         });
 
         return response.choices[0]?.message?.content ?? '';
+    }
+
+    private parseJson<T>(raw: string): T | null {
+        try {
+            const cleaned = raw
+                .replace(/^```(?:json)?\s*/i, '')
+                .replace(/\s*```$/i, '')
+                .trim();
+            return JSON.parse(cleaned) as T;
+        } catch {
+            return null;
+        }
     }
 
     async extractStructuredEvents(text: string, dateHint?: string): Promise<{
@@ -46,23 +64,22 @@ export class OpenAIProvider implements LLMProvider {
             : text;
 
         const response = await this.chat(MEAL_PARSING_PROMPT, userMessage);
+        const parsed = this.parseJson<{
+            meals?: MealEvent[];
+            workouts?: WorkoutEvent[];
+            sleepEvents?: SleepEvent[];
+        }>(response);
 
-        try {
-            // Strip markdown code fences if the model wraps output despite instructions
-            const cleaned = response
-                .replace(/^```(?:json)?\s*/i, '')
-                .replace(/\s*```$/i, '')
-                .trim();
-            const parsed = JSON.parse(cleaned);
-            return {
-                meals: parsed.meals ?? [],
-                workouts: parsed.workouts ?? [],
-                sleepEvents: parsed.sleepEvents ?? [],
-            };
-        } catch {
+        if (!parsed) {
             console.error('Failed to parse LLM response for event extraction:', response.slice(0, 200));
             return { meals: [], workouts: [], sleepEvents: [] };
         }
+
+        return {
+            meals: parsed.meals ?? [],
+            workouts: parsed.workouts ?? [],
+            sleepEvents: parsed.sleepEvents ?? [],
+        };
     }
 
     async estimateMealCarbs(mealDescription: string): Promise<number | null> {
@@ -72,17 +89,31 @@ If you cannot estimate, return { "carbsGrams": null, "confidence": "low" }.
 Be conservative. This is a rough estimate only.`;
 
         const response = await this.chat(systemPrompt, mealDescription);
+        const parsed = this.parseJson<{ carbsGrams?: number | null }>(response);
+        return parsed?.carbsGrams ?? null;
+    }
 
-        try {
-            const cleaned = response
-                .replace(/^```(?:json)?\s*/i, '')
-                .replace(/\s*```$/i, '')
-                .trim();
-            const parsed = JSON.parse(cleaned);
-            return parsed.carbsGrams ?? null;
-        } catch {
-            return null;
+    async generateFullAnalysis(input: FullAnalysisInput): Promise<LLMInsightOutput> {
+        const userMessage = JSON.stringify(input, null, 2);
+
+        const response = await this.chat(FULL_ANALYSIS_PROMPT, userMessage, {
+            model: 'gpt-4o',
+            maxTokens: 6000,
+        });
+
+        const parsed = this.parseJson<LLMInsightOutput>(response);
+        if (!parsed) {
+            console.error('Failed to parse LLM full analysis response:', response.slice(0, 400));
+            return {
+                mealEnrichments: [],
+                overallPatterns: [],
+                sleepGlucoseInsight: null,
+                keyRecommendations: [],
+                summaryText: 'Analysis complete. Enable an OpenAI API key for detailed insights.',
+            };
         }
+
+        return parsed;
     }
 
     async summarizeAnalysis(
@@ -93,17 +124,8 @@ Be conservative. This is a rough estimate only.`;
         sleepEvents?: SleepEvent[],
     ): Promise<string> {
         const systemPrompt = `You are a glucose data analysis assistant. Summarize the analysis results in a clear, friendly, and insightful way.
-
-IMPORTANT RULES:
-- This is NOT a medical device or diagnostic tool
-- Use careful language: "appears associated with", "seems correlated with", "may be linked to"
-- NEVER say: "caused", "proved", "definitively improves"
-- Keep the summary to 3-5 short paragraphs
-- Highlight interesting patterns between meals, exercise, and glucose
-- Mention specific foods and their apparent effects
-- If sleep data is present, note any patterns with fasting glucose
-- Mention any workout benefits observed
-- Be encouraging and helpful`;
+IMPORTANT: Use careful language ("appears associated with", "seems correlated with"). NEVER say "caused" or "proved".
+Keep to 3-5 short paragraphs. Be encouraging and mention specific foods and patterns.`;
 
         const summaryData = {
             totalReadings: readings.length,
@@ -122,18 +144,15 @@ IMPORTANT RULES:
                     ...a,
                 };
             }),
-            sleepSummary: sleepEvents?.map((s) => ({
-                durationMinutes: s.durationMinutes,
-                notes: s.notes,
-            })),
-            avgGlucose: Math.round(
-                readings.reduce((s, r) => s + r.value, 0) / readings.length,
-            ),
-            timeInRange: Math.round(
-                (readings.filter((r) => r.value >= 70 && r.value <= 180).length /
-                    readings.length) *
-                100,
-            ),
+            avgGlucose: readings.length > 0
+                ? Math.round(readings.reduce((s, r) => s + r.value, 0) / readings.length)
+                : 0,
+            timeInRange: readings.length > 0
+                ? Math.round(
+                    (readings.filter((r) => r.value >= 70 && r.value <= 180).length /
+                        readings.length) * 100,
+                )
+                : 0,
         };
 
         return this.chat(systemPrompt, JSON.stringify(summaryData, null, 2));
@@ -155,6 +174,16 @@ export class StubLLMProvider implements LLMProvider {
         return null;
     }
 
+    async generateFullAnalysis(_input: FullAnalysisInput): Promise<LLMInsightOutput> {
+        return {
+            mealEnrichments: [],
+            overallPatterns: [],
+            sleepGlucoseInsight: null,
+            keyRecommendations: [],
+            summaryText: 'Add an OpenAI API key (OPENAI_API_KEY) to unlock AI-powered analysis with per-meal commentary, macro estimates, and personalized recommendations.',
+        };
+    }
+
     async summarizeAnalysis(
         readings: GlucoseReading[],
         meals: MealEvent[],
@@ -162,9 +191,9 @@ export class StubLLMProvider implements LLMProvider {
         analyses: MealAnalysisResult[],
         _sleepEvents?: SleepEvent[],
     ): Promise<string> {
-        const avgGlucose = Math.round(
-            readings.reduce((s, r) => s + r.value, 0) / readings.length,
-        );
+        const avgGlucose = readings.length > 0
+            ? Math.round(readings.reduce((s, r) => s + r.value, 0) / readings.length)
+            : 0;
         const spikes = analyses.filter((a) => a.isSpike);
         const highImpact = analyses.filter((a) => a.impactLabel === 'high');
 

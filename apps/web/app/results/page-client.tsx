@@ -183,10 +183,16 @@ export default function ResultsPage() {
                                     <p className="text-xs text-[var(--color-text-muted)] mb-2">
                                         {new Date(meal.timestamp).toLocaleString()}
                                     </p>
-                                    <div className="flex flex-wrap gap-3 text-xs">
+                                    <div className="flex flex-wrap gap-3 text-xs mb-2">
                                         {analysis?.peakDelta !== null && analysis?.peakDelta !== undefined && (
                                             <span className="text-[var(--color-text-secondary)]">
                                                 Δ {analysis.peakDelta} mg/dL
+                                            </span>
+                                        )}
+                                        {meal.mealLabel && (
+                                            <span className="badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)]"
+                                                style={{ fontSize: "0.6rem", padding: "0.1rem 0.4rem" }}>
+                                                {meal.mealLabel}
                                             </span>
                                         )}
                                         {meal.carbsGrams !== null && meal.carbsGrams !== undefined && (
@@ -198,6 +204,11 @@ export default function ResultsPage() {
                                             </span>
                                         )}
                                     </div>
+                                    {meal.mealCommentary && (
+                                        <p className="text-xs text-[var(--color-text-muted)] leading-relaxed line-clamp-2">
+                                            {meal.mealCommentary}
+                                        </p>
+                                    )}
                                 </button>
                             );
                         })}
@@ -205,7 +216,11 @@ export default function ResultsPage() {
                 </div>
 
                 {data.summary && (
-                    <SummaryBlock summary={data.summary} insights={data.crossMealInsights} />
+                    <SummaryBlock
+                        summary={data.summary}
+                        insights={data.crossMealInsights}
+                        llmInsights={data.llmInsights}
+                    />
                 )}
             </div>
         </main>
