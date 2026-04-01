@@ -16,7 +16,7 @@ export class OpenAIProvider implements LLMProvider {
     private apiKey: string;
     private model: string;
 
-    constructor(apiKey: string, model = 'gpt-4o-mini') {
+    constructor(apiKey: string, model = 'gpt-4.1-2025-04-14') {
         this.apiKey = apiKey;
         this.model = model;
     }
@@ -65,7 +65,7 @@ export class OpenAIProvider implements LLMProvider {
 
         const parseResponse = async (message: string) => {
             const response = await this.chat(MEAL_PARSING_PROMPT, message, {
-                model: 'gpt-4o',
+                model: 'gpt-4.1-2025-04-14',
                 maxTokens: 6000,
             });
             const parsed = this.parseJson<{
@@ -127,7 +127,7 @@ Be conservative. This is a rough estimate only.`;
         const userMessage = JSON.stringify(input, null, 2);
 
         const response = await this.chat(FULL_ANALYSIS_PROMPT, userMessage, {
-            model: 'gpt-4o',
+            model: 'gpt-4.1-2025-04-14',
             maxTokens: 6000,
         });
 
