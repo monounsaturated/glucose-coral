@@ -41,6 +41,14 @@ function formatDate(ts: string): string {
     return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
+function formatDayHeading(ts: string): string {
+    return new Date(ts).toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+    });
+}
+
 function formatDateTime(ts: string): string {
     return `${formatDate(ts)} ${formatTime(ts)}`;
 }
@@ -49,16 +57,11 @@ export function GlucoseChart({
     readings,
     meals,
     workouts,
-    analyses,
+    analyses: _analyses,
     onMealSelect,
     selectedMealId,
 }: GlucoseChartProps) {
     const [timeRange, setTimeRange] = useState<TimeRange>("7d");
-
-    const analysisMap = useMemo(
-        () => new Map(analyses.map((a) => [a.mealId, a])),
-        [analyses]
-    );
 
     const { filteredReadings, filteredMeals, filteredWorkouts } = useMemo(() => {
         if (readings.length === 0)
@@ -123,6 +126,61 @@ export function GlucoseChart({
             return { workout: w, index: closest, glucose: chartData[closest]?.glucose ?? 0 };
         });
     }, [filteredWorkouts, chartData]);
+
+    const groupedEventBadges = useMemo(() => {
+        const mealNumbersByDay = new Map<string, number>();
+        const workoutNumbersByDay = new Map<string, number>();
+        const groups = new Map<
+            string,
+            {
+                dayTs: string;
+                items: Array<
+                    | { type: "meal"; id: string; label: string; timestamp: string }
+                    | { type: "workout"; id: string; label: string; timestamp: string }
+                >;
+            }
+        >();
+
+        const dayKey = (ts: string) => ts.slice(0, 10);
+
+        for (const meal of [...filteredMeals].sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
+            const key = dayKey(meal.timestamp);
+            const mealNum = (mealNumbersByDay.get(key) ?? 0) + 1;
+            mealNumbersByDay.set(key, mealNum);
+            if (!groups.has(key)) {
+                groups.set(key, { dayTs: meal.timestamp, items: [] });
+            }
+            groups.get(key)?.items.push({
+                type: "meal",
+                id: meal.id,
+                timestamp: meal.timestamp,
+                label: `Meal ${mealNum}`,
+            });
+        }
+
+        for (const workout of [...filteredWorkouts].sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
+            const key = dayKey(workout.timestamp);
+            const workoutNum = (workoutNumbersByDay.get(key) ?? 0) + 1;
+            workoutNumbersByDay.set(key, workoutNum);
+            if (!groups.has(key)) {
+                groups.set(key, { dayTs: workout.timestamp, items: [] });
+            }
+            groups.get(key)?.items.push({
+                type: "workout",
+                id: workout.id,
+                timestamp: workout.timestamp,
+                label: `Workout ${workoutNum}`,
+            });
+        }
+
+        return [...groups.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([key, group]) => ({
+                key,
+                heading: formatDayHeading(group.dayTs),
+                items: group.items.sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
+            }));
+    }, [filteredMeals, filteredWorkouts]);
 
     // Custom tick showing fewer labels for 7d/14d
     const tickInterval = timeRange === "1d" ? 4 : timeRange === "7d" ? 16 : 32;
@@ -209,28 +267,21 @@ export function GlucoseChart({
                         />
 
                         {/* Meal markers as reference lines */}
-                        {mealMarkerIndices.map(({ meal }) => {
-                            const analysis = analysisMap.get(meal.id);
-                            const color =
-                                analysis?.impactLabel === "high"
-                                    ? "#ef4444"
-                                    : analysis?.impactLabel === "moderate"
-                                        ? "#f59e0b"
-                                        : "#22c55e";
-                            return (
-                                <ReferenceLine
-                                    key={meal.id}
-                                    x={
-                                        timeRange === "1d"
-                                            ? formatTime(meal.timestamp)
-                                            : formatDateTime(meal.timestamp)
-                                    }
-                                    stroke={color}
-                                    strokeDasharray="4 4"
-                                    strokeOpacity={0.7}
-                                />
-                            );
-                        })}
+                        {mealMarkerIndices.map(({ meal }) => (
+                            <ReferenceLine
+                                key={meal.id}
+                                x={
+                                    timeRange === "1d"
+                                        ? formatTime(meal.timestamp)
+                                        : formatDateTime(meal.timestamp)
+                                }
+                                stroke="#f97316"
+                                strokeDasharray="4 4"
+                                strokeOpacity={0.9}
+                                style={{ cursor: "pointer" }}
+                                onClick={() => onMealSelect?.(meal.id)}
+                            />
+                        ))}
 
                         {/* Workout markers */}
                         {workoutMarkerPositions.map(({ workout }) => (
@@ -241,9 +292,9 @@ export function GlucoseChart({
                                         ? formatTime(workout.timestamp)
                                         : formatDateTime(workout.timestamp)
                                 }
-                                stroke="#10b981"
+                                stroke="#2563eb"
                                 strokeDasharray="2 6"
-                                strokeOpacity={0.5}
+                                strokeOpacity={0.8}
                             />
                         ))}
 
@@ -259,36 +310,31 @@ export function GlucoseChart({
                 </ResponsiveContainer>
             </div>
 
-            {/* Event Legend */}
-            <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-secondary)]">
-                {filteredMeals.map((meal) => {
-                    const analysis = analysisMap.get(meal.id);
-                    const impactClass =
-                        analysis?.impactLabel === "high"
-                            ? "impact-high"
-                            : analysis?.impactLabel === "moderate"
-                                ? "impact-moderate"
-                                : "impact-low";
-                    return (
-                        <button
-                            key={meal.id}
-                            onClick={() => onMealSelect?.(meal.id)}
-                            className={`flex items-center gap-1.5 badge ${impactClass} cursor-pointer transition-transform hover:scale-105 ${selectedMealId === meal.id ? "ring-2 ring-[var(--color-accent)]" : ""
-                                }`}
-                        >
-                            <Utensils className="w-3 h-3" />
-                            {meal.name ?? "Meal"}
-                        </button>
-                    );
-                })}
-                {filteredWorkouts.map((w) => (
-                    <span
-                        key={w.id}
-                        className="flex items-center gap-1.5 badge bg-[var(--color-workout-bg)] text-[var(--color-workout)]"
-                    >
-                        <Footprints className="w-3 h-3" />
-                        {w.type} {w.durationMinutes ? `(${w.durationMinutes}m)` : ""}
-                    </span>
+            {/* Event badges grouped by day */}
+            <div className="space-y-3">
+                {groupedEventBadges.map((group) => (
+                    <div key={group.key}>
+                        <p className="text-xs text-[var(--color-text-secondary)] mb-2">{group.heading}</p>
+                        <div className="flex flex-wrap gap-2">
+                            {group.items.map((item) =>
+                                item.type === "meal" ? (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => onMealSelect?.(item.id)}
+                                        className={`flex items-center gap-1.5 badge bg-[var(--color-meal-bg)] text-[var(--color-meal)] cursor-pointer ${selectedMealId === item.id ? "ring-2 ring-[var(--color-accent)]" : ""}`}
+                                    >
+                                        <Utensils className="w-3 h-3" />
+                                        {item.label}
+                                    </button>
+                                ) : (
+                                    <span key={item.id} className="flex items-center gap-1.5 badge bg-[var(--color-workout-bg)] text-[var(--color-workout)]">
+                                        <Footprints className="w-3 h-3" />
+                                        {item.label}
+                                    </span>
+                                )
+                            )}
+                        </div>
+                    </div>
                 ))}
             </div>
         </div>
