@@ -6,8 +6,9 @@ import { GlucoseChart } from "../components/glucose-chart";
 import { EventDetailPanel } from "../components/event-detail-panel";
 import { SummaryBlock } from "../components/summary-block";
 import { getDemoAnalysis } from "../../lib/demo-data";
-import { Activity, ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
 import type { AnalysisOutput } from "@glucose/types";
+import { Brand } from "../components/brand";
 
 export default function DemoPage() {
     const data: AnalysisOutput = useMemo(() => getDemoAnalysis(), []);
@@ -46,8 +47,7 @@ export default function DemoPage() {
             <nav className="fixed top-0 w-full z-50 glass">
                 <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-[var(--color-glucose)]" />
-                        <span className="font-bold text-sm">Glucose Explorer</span>
+                        <Brand compact />
                     </Link>
                     <Link href="/upload" className="btn-primary text-xs py-2 px-4">
                         <Upload className="w-3 h-3" />
