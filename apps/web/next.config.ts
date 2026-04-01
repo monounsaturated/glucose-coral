@@ -8,7 +8,6 @@ const nextConfig: NextConfig = {
     "@glucose/event-parser",
     "@glucose/analytics",
     "@glucose/llm",
-    "@glucose/db",
   ],
   serverExternalPackages: ["pdf-parse"],
 };

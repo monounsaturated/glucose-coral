@@ -105,25 +105,14 @@ function splitCsvLine(line: string, delimiter: ',' | ';'): string[] {
 }
 
 /**
- * Find the header row in an Abbott Libre CSV.
- * Accepts English, French, German, Spanish, Italian column name variants.
+ * Find the header row in an Abbott Libre CSV (English export).
  */
 function isGlucoseHeader(lower: string): boolean {
-    const hasTimestamp =
-        lower.includes('device timestamp') ||
-        lower.includes('horodatage') ||
-        lower.includes('datum') ||
-        lower.includes('fecha') ||
-        lower.includes('data');
+    const hasTimestamp = lower.includes('device timestamp') || lower.includes('timestamp');
 
     const hasGlucose =
         lower.includes('historic glucose') ||
         lower.includes('scan glucose') ||
-        lower.includes('historique de glucose') ||
-        lower.includes('historisch') ||
-        lower.includes('glucosa hist') ||
-        lower.includes('glicemia stor') ||
-        lower.includes('valeur de glucose') ||
         (lower.includes('glucose') && (lower.includes('mg/dl') || lower.includes('mmol')));
 
     return hasTimestamp || hasGlucose;
@@ -134,15 +123,8 @@ function findHeaderRowIndex(lines: string[]): number {
     for (let i = 0; i < lines.length; i++) {
         const lower = lines[i].toLowerCase();
         // Must contain both a timestamp column and a glucose column
-        const hasTs =
-            lower.includes('device timestamp') ||
-            lower.includes('horodatage') ||
-            lower.includes('timestamp');
-        const hasGlc =
-            lower.includes('glucose') ||
-            lower.includes('glycémie') ||
-            lower.includes('glucosa') ||
-            lower.includes('glicemia');
+        const hasTs = lower.includes('device timestamp') || lower.includes('timestamp');
+        const hasGlc = lower.includes('glucose');
         if (hasTs && hasGlc) return i;
     }
 
@@ -230,33 +212,23 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
         });
         rawRows.push(rawRow);
 
-        // Extract timestamp — try all known locale variants
+        // Extract timestamp (English export)
         const rawTs = getCol(
             fields,
             'Device Timestamp',
-            'Horodatage',
-            'Horodatage du dispositif',
-            'Datum',
-            'Fecha',
             'Timestamp',
         );
         if (!rawTs) continue;
         const ts = parseLibreTimestamp(rawTs);
         if (!ts) continue;
 
-        // Extract glucose reading — try English + locale column names
+        // Extract glucose reading (English export; supports mg/dL or mmol/L headers)
         const historicStr = getCol(
             fields,
             'Historic Glucose mg/dL',
             'Historic Glucose (mg/dL)',
             'Historic Glucose mmol/L',
             'Historic Glucose (mmol/L)',
-            'Historique de glucose (mg/dL)',
-            'Historique de glucose mg/dL',
-            'Historischer Glukosewert (mg/dL)',
-            'Glucosa histórica mg/dL',
-            'Glucosa histórica (mg/dL)',
-            'Glicemia storica mg/dL',
         );
         const scanStr = getCol(
             fields,
@@ -264,10 +236,6 @@ export function parseLibreCsv(csvContent: string): LibreParseResult {
             'Scan Glucose (mg/dL)',
             'Scan Glucose mmol/L',
             'Scan Glucose (mmol/L)',
-            'Scan de glucose (mg/dL)',
-            'Scan de glucose mg/dL',
-            'Scanglukoswert (mg/dL)',
-            'Glucosa escaneada mg/dL',
         );
         const stripStr = getCol(
             fields,

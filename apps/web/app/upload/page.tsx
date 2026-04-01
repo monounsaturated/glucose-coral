@@ -200,6 +200,9 @@ export default function UploadPage() {
                                     <p className="text-xs text-[var(--color-text-muted)] mt-1">
                                         .csv files up to 10 MB
                                     </p>
+                                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                                        Use English-language Abbott FreeStyle Libre CSV exports only
+                                    </p>
                                 </div>
                             )}
                         </div>

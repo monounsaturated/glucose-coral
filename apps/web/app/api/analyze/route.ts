@@ -119,7 +119,6 @@ function buildFullAnalysisInput(
 
 function applyEnrichments(
     meals: MealEvent[],
-    enrichments: FullAnalysisInput["meals"] extends never ? never : ReturnType<typeof buildFullAnalysisInput>["meals"],
     llmInsights: Awaited<ReturnType<ReturnType<typeof createLLMProvider>["generateFullAnalysis"]>>,
 ): MealEvent[] {
     const enrichMap = new Map(llmInsights.mealEnrichments.map((e) => [e.mealId, e]));
@@ -240,7 +239,7 @@ export async function POST(request: NextRequest) {
         }
 
         // ── Stage 5: Merge enrichments into meals ─────────────
-        const enrichedMeals = applyEnrichments(meals, [], llmInsights);
+        const enrichedMeals = applyEnrichments(meals, llmInsights);
 
         const runId = crypto.randomUUID();
         const result: AnalysisOutput = {

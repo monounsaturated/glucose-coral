@@ -3,7 +3,13 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/analytics",
+    "packages/db",
+    "packages/document-parser",
+    "packages/event-parser",
+    "packages/libre-parser",
+    "packages/llm",
+    "packages/types"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",

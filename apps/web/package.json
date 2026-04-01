@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@glucose/analytics": "*",
-    "@glucose/db": "*",
     "@glucose/document-parser": "*",
     "@glucose/event-parser": "*",
     "@glucose/libre-parser": "*",
