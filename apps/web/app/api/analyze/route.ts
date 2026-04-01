@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         const csvFile = formData.get("csv") as File | null;
         const mode = (formData.get("mode") as InputMode) ?? "csv-food";
         const documentFile = formData.get("document") as File | null;
+        const documentTextInput = (formData.get("documentText") as string | null)?.trim() ?? "";
 
         // Validate CSV
         if (!csvFile) {
@@ -76,9 +77,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate document in document mode
-        if (mode === "document-food" && !documentFile) {
+        if (mode === "document-food" && !documentFile && !documentTextInput) {
             return NextResponse.json(
-                { error: "Meal/workout document is required in document mode" },
+                { error: "In document mode, upload a notes file or paste plain text notes." },
                 { status: 400 }
             );
         }
@@ -108,21 +109,25 @@ export async function POST(request: NextRequest) {
         if (mode === "csv-food") {
             // Use meals from CSV
             meals = parsed.meals;
-        } else if (mode === "document-food" && documentFile) {
-            // Extract events from document
-            const docBuffer = Buffer.from(await documentFile.arrayBuffer());
-            const extraction = await extractDocumentText(docBuffer, documentFile.name);
+        } else if (mode === "document-food") {
+            // Extract events from uploaded file or plain text notes
+            let extractionText = documentTextInput;
+            if (documentFile) {
+                const docBuffer = Buffer.from(await documentFile.arrayBuffer());
+                const extraction = await extractDocumentText(docBuffer, documentFile.name);
+                extractionText = extraction.text;
+            }
 
             // Try LLM extraction first, fall back to regex
             try {
                 const llmEvents = await llmProvider.extractStructuredEvents(
-                    extraction.text
+                    extractionText
                 );
                 meals = llmEvents.meals;
                 workouts = llmEvents.workouts;
             } catch {
                 // Fall back to basic extraction
-                const basicEvents = extractEventsFromTextBasic(extraction.text);
+                const basicEvents = extractEventsFromTextBasic(extractionText);
                 meals = basicEvents.meals as MealEvent[];
                 workouts = basicEvents.workouts as WorkoutEvent[];
             }

@@ -10,58 +10,86 @@ export default function UploadPage() {
     const router = useRouter();
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [documentFile, setDocumentFile] = useState<File | null>(null);
+    const [documentText, setDocumentText] = useState("");
     const [isDocumentMode, setIsDocumentMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleCsvDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.toLowerCase().endsWith(".csv")) {
-            setCsvFile(file);
-            setError(null);
-        } else {
-            setError("Please upload a .csv file");
+    const validateCsvFile = useCallback((file: File): string | null => {
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            return "Please upload a .csv file";
         }
+        if (file.size > 10 * 1024 * 1024) {
+            return "CSV file is too large (max 10 MB)";
+        }
+        return null;
     }, []);
 
-    const handleCsvSelect = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (file) {
-                if (file.size > 10 * 1024 * 1024) {
-                    setError("CSV file is too large (max 10 MB)");
-                    return;
-                }
-                setCsvFile(file);
-                setError(null);
-            }
-        },
-        []
-    );
+    const validateDocumentFile = useCallback((file: File): string | null => {
+        if (file.size > 2 * 1024 * 1024) {
+            return "Document file is too large (max 2 MB)";
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (!["txt", "md", "pdf"].includes(ext ?? "")) {
+            return "Please upload a .txt, .md, or .pdf file";
+        }
+        return null;
+    }, []);
 
-    const handleDocSelect = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (file) {
-                if (file.size > 2 * 1024 * 1024) {
-                    setError("Document file is too large (max 2 MB)");
-                    return;
-                }
-                const ext = file.name.split(".").pop()?.toLowerCase();
-                if (!["txt", "md", "pdf"].includes(ext ?? "")) {
-                    setError("Please upload a .txt, .md, or .pdf file");
-                    return;
-                }
-                setDocumentFile(file);
-                setError(null);
-            }
-        },
-        []
-    );
+    const handleCsvDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const fileError = validateCsvFile(file);
+        if (fileError) {
+            setError(fileError);
+            return;
+        }
+        setCsvFile(file);
+        setError(null);
+    }, [validateCsvFile]);
+
+    const handleCsvSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const fileError = validateCsvFile(file);
+        if (fileError) {
+            setError(fileError);
+            return;
+        }
+        setCsvFile(file);
+        setError(null);
+    }, [validateCsvFile]);
+
+    const handleDocDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const fileError = validateDocumentFile(file);
+        if (fileError) {
+            setError(fileError);
+            return;
+        }
+        setDocumentFile(file);
+        setError(null);
+    }, [validateDocumentFile]);
+
+    const handleDocSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const fileError = validateDocumentFile(file);
+        if (fileError) {
+            setError(fileError);
+            return;
+        }
+        setDocumentFile(file);
+        setError(null);
+    }, [validateDocumentFile]);
 
     const canSubmit =
-        csvFile && (!isDocumentMode || documentFile) && !isLoading;
+        csvFile &&
+        (!isDocumentMode || Boolean(documentFile) || documentText.trim().length > 0) &&
+        !isLoading;
 
     const handleSubmit = async () => {
         if (!canSubmit || !csvFile) return;
@@ -74,6 +102,9 @@ export default function UploadPage() {
             formData.append("mode", isDocumentMode ? "document-food" : "csv-food");
             if (documentFile && isDocumentMode) {
                 formData.append("document", documentFile);
+            }
+            if (isDocumentMode && documentText.trim().length > 0) {
+                formData.append("documentText", documentText.trim());
             }
 
             const res = await fetch("/api/analyze", {
@@ -182,7 +213,10 @@ export default function UploadPage() {
                                 checked={isDocumentMode}
                                 onChange={(e) => {
                                     setIsDocumentMode(e.target.checked);
-                                    if (!e.target.checked) setDocumentFile(null);
+                                    if (!e.target.checked) {
+                                        setDocumentFile(null);
+                                        setDocumentText("");
+                                    }
                                 }}
                                 className="mt-1 w-4 h-4 rounded border-[var(--color-border)] bg-[var(--color-surface-elevated)] accent-[var(--color-accent)]"
                             />
@@ -191,8 +225,8 @@ export default function UploadPage() {
                                     My food data is NOT entered in my FreeStyle Libre document
                                 </p>
                                 <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                                    Check this if you track meals separately. You&apos;ll be asked to
-                                    upload a meal/workout notes file.
+                                    Check this if you track meals separately. You can upload a
+                                    meal/workout notes file or paste plain text notes.
                                 </p>
                             </div>
                         </label>
@@ -205,6 +239,8 @@ export default function UploadPage() {
                                 Meal/Workout Notes <span className="text-[var(--color-spike-high)]">*</span>
                             </label>
                             <div
+                                onDrop={handleDocDrop}
+                                onDragOver={(e) => e.preventDefault()}
                                 className={`card border-dashed text-center py-10 cursor-pointer transition-all hover:border-[var(--color-border-hover)] ${documentFile
                                         ? "border-[var(--color-meal)] bg-[var(--color-meal-bg)]"
                                         : ""
@@ -237,6 +273,18 @@ export default function UploadPage() {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="mt-3">
+                                <p className="text-xs text-[var(--color-text-muted)] mb-2">
+                                    Or paste plain text notes (timestamps in DD-MM-YYYY HH:mm)
+                                </p>
+                                <textarea
+                                    value={documentText}
+                                    onChange={(e) => setDocumentText(e.target.value)}
+                                    placeholder="Example: 23-03-2026 12:30 - Lunch: chicken salad with rice (walk 20 min at 13:10)"
+                                    className="w-full min-h-28 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                                />
                             </div>
                         </div>
                     )}

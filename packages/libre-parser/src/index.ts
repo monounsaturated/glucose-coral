@@ -10,7 +10,7 @@ export function parseLibreTimestamp(raw: string): string | null {
     const trimmed = raw.trim();
     // Match DD-MM-YYYY HH:mm (with various separators)
     const match = trimmed.match(
-        /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s+(\d{1,2}):(\d{2})$/,
+        /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s+(\d{1,2}):(\d{2})(?:\s+[A-Za-z]+)?$/,
     );
     if (!match) return null;
 
@@ -70,14 +70,18 @@ const KNOWN_COLUMNS = [
 ];
 
 function findHeaderRowIndex(lines: string[]): number {
-    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    for (let i = 0; i < lines.length; i++) {
         const lower = lines[i].toLowerCase();
         const matchCount = KNOWN_COLUMNS.filter((col) => lower.includes(col)).length;
         if (matchCount >= 2) return i;
     }
     // Fallback: first row with many columns
-    for (let i = 0; i < Math.min(lines.length, 10); i++) {
-        if (splitCsvLine(lines[i]).length >= 5) return i;
+    for (let i = 0; i < lines.length; i++) {
+        const lower = lines[i].toLowerCase();
+        if (lower.includes('device timestamp') && (lower.includes('historic glucose') || lower.includes('scan glucose'))) {
+            return i;
+        }
+        if (splitCsvLine(lines[i]).length >= 5 && lower.includes('device')) return i;
     }
     return 0;
 }
@@ -94,7 +98,8 @@ export interface LibreParseResult {
  * Parse an Abbott FreeStyle Libre CSV file content.
  */
 export function parseLibreCsv(csvContent: string): LibreParseResult {
-    const lines = csvContent
+    const sanitized = csvContent.replace(/^\uFEFF/, '');
+    const lines = sanitized
         .split(/\r?\n/)
         .filter((line) => line.trim().length > 0);
 
