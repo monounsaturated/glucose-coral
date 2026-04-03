@@ -73,7 +73,8 @@ export default function DemoPage() {
                         </span>
                     </div>
                     <p className="text-sm text-[var(--color-text-secondary)]">
-                        Explore 3 days of glucose data with 9 meals and 2 workouts
+                        Explore 7 days of glucose data with {data.mealEvents.length} meals and{" "}
+                        {data.workoutEvents.length} workouts
                     </p>
                 </div>
 
@@ -109,6 +110,7 @@ export default function DemoPage() {
                     analyses={data.mealAnalyses}
                     onMealSelect={setSelectedMealId}
                     selectedMealId={selectedMealId}
+                    defaultTimeRange="7d"
                 />
 
                 {/* Event Detail */}

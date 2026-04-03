@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { Upload, Zap } from "lucide-react";
 import { DemoPreview } from "./components/demo-preview";
 import { Brand } from "./components/brand";
 import { TypewriterDemo } from "./components/typewriter-demo";
@@ -20,30 +20,57 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero + media — tuned to fit one viewport on common laptop sizes */}
-      <section className="min-h-[100dvh] pt-[4.5rem] px-6 pb-6 flex flex-col">
-        <div className="max-w-6xl mx-auto w-full flex flex-col flex-1 min-h-0">
-          <div className="text-center shrink-0 mb-4 md:mb-5 animate-fade-in">
-            <h1
-              className="text-3xl md:text-5xl font-bold tracking-tight mb-3 leading-tight"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              Just Write Your Notes
-            </h1>
-            <p className="text-sm md:text-base text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-5 leading-relaxed">
-              Type freely in any language : AI parses meals, workouts, and sleep
-              into structured data with macro estimates.
-            </p>
-            <Link href="/upload" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Upload Your Data
-            </Link>
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-6">
+        <div className="max-w-4xl mx-auto text-center animate-fade-in">
+          <div className="inline-flex items-center gap-2 badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)] mb-6">
+            <Zap className="w-3 h-3" />
+            Exploratory Glucose Analytics
           </div>
+          <h1
+            className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Understand How Food
+            <br />
+            <span className="gradient-text">Affects Your Glucose</span>
+          </h1>
+          <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-10 leading-relaxed">
+            Upload your Abbott FreeStyle Libre data and discover which meals
+            seem associated with spikes, which foods appear gentler on your
+            glucose, and whether walks after meals might help.
+          </p>
+          <Link href="/upload" className="btn-primary text-base px-8 py-3 inline-flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Upload Your Data
+          </Link>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 flex-1 min-h-0 items-stretch">
-            <TypewriterDemo compact />
-            <DemoPreview compact />
-          </div>
+      {/* Notes → AI (full width, stacked — not side-by-side with chart) */}
+      <section className="pb-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-xs font-mono text-[var(--color-text-muted)] mb-2">
+            notes.txt
+          </p>
+          <h2
+            className="text-center text-2xl font-bold mb-2"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Parsed by AI
+          </h2>
+          <p className="text-center text-[var(--color-text-secondary)] max-w-xl mx-auto mb-8 text-sm">
+            Type freely in any language — meals, workouts, and sleep become
+            structured events with macro estimates.
+          </p>
+          <TypewriterDemo />
+        </div>
+      </section>
+
+      {/* Demo chart — below notes, full width */}
+      <section className="pb-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <DemoPreview />
         </div>
       </section>
 

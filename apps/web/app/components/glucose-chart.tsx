@@ -47,6 +47,8 @@ interface GlucoseChartProps {
     chartHeight?: number;
     /** Hides per-day meal/workout badge rows below the chart. */
     compact?: boolean;
+    /** Initial range tab (default 3d). */
+    defaultTimeRange?: TimeRange;
 }
 
 function formatTime(ts: string): string {
@@ -80,8 +82,9 @@ export function GlucoseChart({
     selectedMealId,
     chartHeight = 360,
     compact = false,
+    defaultTimeRange = "3d",
 }: GlucoseChartProps) {
-    const [timeRange, setTimeRange] = useState<TimeRange>("3d");
+    const [timeRange, setTimeRange] = useState<TimeRange>(defaultTimeRange);
 
     const analysisMap = useMemo(
         () => new Map(analyses.map((a) => [a.mealId, a])),

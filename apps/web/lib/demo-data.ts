@@ -12,7 +12,7 @@ export function getDemoAnalysis(): AnalysisOutput {
 
     const parsed = parseLibreCsv(demoCSV);
 
-    // Create workout events from notes in the CSV
+    // Create workout events from notes in the CSV (aligned with demo CSV rows)
     const workouts: WorkoutEvent[] = [
         {
             id: "demo-workout-1",
@@ -30,6 +30,42 @@ export function getDemoAnalysis(): AnalysisOutput {
             type: "walk",
             durationMinutes: 30,
             notes: "Walked 30 mins after lunch, brisk pace",
+            source: "csv",
+        },
+        {
+            id: "demo-workout-3",
+            timestamp: "2026-03-23T13:00:00",
+            rawTimestamp: "23-03-2026 13:00",
+            type: "walk",
+            durationMinutes: 25,
+            notes: "Walked 25 mins after lunch",
+            source: "csv",
+        },
+        {
+            id: "demo-workout-4",
+            timestamp: "2026-03-24T13:00:00",
+            rawTimestamp: "24-03-2026 13:00",
+            type: "walk",
+            durationMinutes: 40,
+            notes: "Yoga 40 min evening",
+            source: "csv",
+        },
+        {
+            id: "demo-workout-5",
+            timestamp: "2026-03-25T13:00:00",
+            rawTimestamp: "25-03-2026 13:00",
+            type: "walk",
+            durationMinutes: 25,
+            notes: "Walked 25 mins after lunch",
+            source: "csv",
+        },
+        {
+            id: "demo-workout-6",
+            timestamp: "2026-03-26T13:00:00",
+            rawTimestamp: "26-03-2026 13:00",
+            type: "walk",
+            durationMinutes: 40,
+            notes: "Yoga 40 min evening",
             source: "csv",
         },
     ];
@@ -57,15 +93,15 @@ export function getDemoAnalysis(): AnalysisOutput {
         .map((a) => parsed.meals.find((m) => m.id === a.mealId)?.name)
         .filter(Boolean);
 
-    const summaryText = `Over 3 days and ${parsed.readings.length} glucose readings, your average glucose was ${avgGlucose} mg/dL with ${timeInRange}% of readings in the 70-180 mg/dL range.
+    const summaryText = `Over 7 days and ${parsed.readings.length} glucose readings, your average glucose was ${avgGlucose} mg/dL with ${timeInRange}% of readings in the 70-180 mg/dL range.
 
-${spikeMeals.length} of ${parsed.meals.length} meals appear associated with glucose spikes (≥30 mg/dL rise above baseline). The meals most associated with elevated responses were ${spikeNames.slice(0, 3).join(", ")} — all showing high-carb profiles.
+${spikeMeals.length} of ${parsed.meals.length} meals appear associated with glucose spikes (≥30 mg/dL rise above baseline). The meals most associated with elevated responses included ${spikeNames.slice(0, 4).join(", ")} — many with higher-carb profiles.
 
-${lowImpactNames.length > 0 ? `Meals that appeared gentler on glucose include ${lowImpactNames.join(", ")} — these showed peak rises under 20 mg/dL, suggesting they may be well-tolerated options.` : ""}
+${lowImpactNames.length > 0 ? `Meals that appeared gentler on glucose include ${lowImpactNames.slice(0, 4).join(", ")} — these showed smaller peak rises relative to baseline.` : ""}
 
-${workouts.length > 0 ? `On days with post-meal walks, glucose peaks appeared moderated. For example, the salmon lunch on Day 2 followed by a 20-minute walk showed notably lower impact than the potato hash breakfast without walking.` : ""}
+${workouts.length > 0 ? `Across the week, post-meal walks and light activity on several days lined up with somewhat softer post-meal curves than the highest-carb meals without movement.` : ""}
 
-Note: These are observational correlations from a small dataset. Many factors affect glucose responses including portion size, preparation method, stress, and sleep. This is not medical advice.`;
+Note: These are observational correlations from a sample dataset. Many factors affect glucose responses including portion size, preparation method, stress, and sleep. This is not medical advice.`;
 
     cachedResult = {
         run: {
