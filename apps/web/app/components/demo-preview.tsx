@@ -63,56 +63,62 @@ export function DemoPreview({ compact = false }: DemoPreviewProps) {
                     compact ? "p-4 space-y-3" : "p-6 md:p-8 space-y-6"
                 }`}
             >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-[var(--color-accent)]" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
                             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-hover)]">
                                 Demo data
                             </p>
                         </div>
                         <h3
-                            className="text-xl md:text-2xl font-bold mb-1"
+                            className="mb-1 text-xl font-bold tracking-tight md:text-2xl"
                             style={{ fontFamily: "var(--font-display)" }}
                         >
-                            A full week on the chart
+                            Your week of glucose, at a glance
                         </h3>
-                        <p className="text-sm text-[var(--color-text-secondary)] max-w-xl">
-                            7 days of sample CGM readings with logged meals and
-                            workouts — tap meals on the chart or in the timeline
-                            below.
+                        <p className="max-w-xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                            Sample CGM curve with meals and movement. Starts on a{" "}
+                            <strong className="font-semibold text-[var(--color-text-primary)]">
+                                3-day
+                            </strong>{" "}
+                            window — open{" "}
+                            <strong className="font-semibold text-[var(--color-text-primary)]">
+                                7D
+                            </strong>{" "}
+                            for the full sample week.
                         </p>
                     </div>
-                    <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)]">
-                        <Activity className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                        7 days · interactive
+                    <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm">
+                        <Activity className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                        Interactive chart
                     </span>
                 </div>
 
-                <div className="flex flex-wrap gap-2 md:gap-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-glucose)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-text-primary)]">
+                <div className="flex flex-wrap gap-2 md:gap-2.5">
+                    <span className="inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-lg bg-[var(--color-glucose)]/10 px-3 py-1.5 text-xs font-medium text-[var(--color-text-primary)] shadow-sm">
                         <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-glucose)]" />
                         {data.glucoseReadings.length} readings
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-meal-bg)] px-3 py-1.5 text-xs font-medium text-[var(--color-meal)]">
-                        <Utensils className="w-3.5 h-3.5" />
+                    <span className="inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-lg bg-[var(--color-meal-bg)] px-3 py-1.5 text-xs font-medium text-[var(--color-meal)] shadow-sm">
+                        <Utensils className="h-3.5 w-3.5" />
                         {data.mealEvents.length} meals
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-workout-bg)] px-3 py-1.5 text-xs font-medium text-[var(--color-workout)]">
-                        <Footprints className="w-3.5 h-3.5" />
+                    <span className="inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-lg bg-[var(--color-workout-bg)] px-3 py-1.5 text-xs font-medium text-[var(--color-workout)] shadow-sm">
+                        <Footprints className="h-3.5 w-3.5" />
                         {data.workoutEvents.length} workouts
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-primary)]">
+                    <span className="inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-lg bg-[var(--color-accent-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-primary)] shadow-sm">
                         Avg {stats.avg} mg/dL
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)]">
+                    <span className="inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)] shadow-sm">
                         {stats.tir}% in range
                     </span>
                 </div>
 
                 {!compact && mealPreview.length > 0 && (
-                    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]/50 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
+                    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]/60 p-3 shadow-sm">
+                        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
                             Logged meals (sample)
                         </p>
                         <div className="flex flex-wrap gap-1.5">
@@ -143,7 +149,7 @@ export function DemoPreview({ compact = false }: DemoPreviewProps) {
                     selectedMealId={selectedMealId}
                     chartHeight={compact ? 200 : 400}
                     compact={compact}
-                    defaultTimeRange="7d"
+                    defaultTimeRange="3d"
                 />
 
                 {selectedMeal && (

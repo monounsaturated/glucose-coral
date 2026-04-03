@@ -110,7 +110,7 @@ export default function DemoPage() {
                     analyses={data.mealAnalyses}
                     onMealSelect={setSelectedMealId}
                     selectedMealId={selectedMealId}
-                    defaultTimeRange="7d"
+                    defaultTimeRange="3d"
                 />
 
                 {/* Event Detail */}

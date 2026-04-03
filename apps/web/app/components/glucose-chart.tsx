@@ -65,6 +65,36 @@ function formatDateTime(ts: string): string {
     return `${formatDate(ts)} ${formatTime(ts)}`;
 }
 
+/** Short axis labels so ticks do not overlap on narrow charts. */
+function formatAxisTick(ts: string, range: TimeRange): string {
+    const d = new Date(ts);
+    if (range === "1d") {
+        return formatTime(ts);
+    }
+    if (range === "3d") {
+        return `${d.getDate()}/${d.getMonth() + 1} ${formatTime(ts)}`;
+    }
+    return d.toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+    });
+}
+
+function formatTooltipWhen(ts: string, range: TimeRange): string {
+    const d = new Date(ts);
+    if (range === "1d") {
+        return `${formatTime(ts)}`;
+    }
+    return d.toLocaleString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
 function formatDayHeading(ts: string): string {
     return new Date(ts).toLocaleDateString("en-US", {
         weekday: "long",
@@ -232,32 +262,55 @@ export function GlucoseChart({
             }));
     }, [filteredMeals, filteredWorkouts, analysisMap]);
 
-    // Custom tick showing fewer labels for 3d/7d
-    const tickInterval = timeRange === "1d" ? 4 : timeRange === "3d" ? 10 : 16;
+    const labelToTimestamp = useMemo(() => {
+        const m = new Map<string, string>();
+        for (const row of chartData) {
+            m.set(row.label, row.timestamp);
+        }
+        return m;
+    }, [chartData]);
+
+    /** Few, evenly spaced category ticks — avoids overlapping date/time strings. */
+    const xAxisTicks = useMemo(() => {
+        const len = chartData.length;
+        if (len === 0) return [];
+        const cap = timeRange === "1d" ? 10 : timeRange === "3d" ? 8 : 7;
+        if (len <= cap) {
+            return chartData.map((d) => d.label);
+        }
+        const out: string[] = [];
+        const step = (len - 1) / Math.max(cap - 1, 1);
+        for (let i = 0; i < cap; i++) {
+            const idx = Math.min(len - 1, Math.round(i * step));
+            out.push(chartData[idx].label);
+        }
+        return [...new Set(out)];
+    }, [chartData, timeRange]);
 
     return (
         <div className={compact ? "space-y-2" : "space-y-4"}>
             {/* Time range tabs + legend */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
                     {(["1d", "3d", "7d"] as TimeRange[]).map((range) => (
                         <button
                             key={range}
+                            type="button"
                             onClick={() => setTimeRange(range)}
                             className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${timeRange === range
-                                    ? "bg-[var(--color-accent)] text-white"
-                                    : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                    ? "bg-[var(--color-accent)] text-white shadow-sm"
+                                    : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border)]/60"
                                 }`}
                         >
                             {range.toUpperCase()}
                         </button>
                     ))}
-                    <span className="text-xs text-[var(--color-text-muted)] ml-2">
-                        {filteredReadings.length} readings
+                    <span className="text-xs text-[var(--color-text-muted)] sm:ml-1">
+                        {filteredReadings.length} readings in view
                     </span>
                 </div>
                 {/* Chart legend */}
-                <div className="flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--color-text-muted)]">
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block w-6 h-0.5 rounded" style={{ background: "#22d3ee" }} />
                         Glucose
@@ -293,7 +346,10 @@ export function GlucoseChart({
             {/* Chart */}
             <div className="card p-4" style={{ height: chartHeight }}>
                 <ResponsiveContainerComponent width="100%" height="100%">
-                    <LineChartComponent data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                    <LineChartComponent
+                        data={chartData}
+                        margin={{ top: 16, right: 12, bottom: timeRange === "7d" ? 36 : 28, left: 4 }}
+                    >
                         <defs>
                             <linearGradient id="glucoseGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
@@ -303,9 +359,17 @@ export function GlucoseChart({
                         <CartesianGridComponent strokeDasharray="3 3" stroke="var(--color-border)" />
                         <XAxisComponent
                             dataKey="label"
+                            type="category"
+                            ticks={xAxisTicks}
                             tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
-                            interval={tickInterval}
+                            tickFormatter={(value: string) => {
+                                const ts = labelToTimestamp.get(value);
+                                return ts ? formatAxisTick(ts, timeRange) : value;
+                            }}
+                            interval={0}
+                            minTickGap={8}
                             axisLine={{ stroke: "var(--color-border)" }}
+                            tickLine={{ stroke: "var(--color-border)" }}
                         />
                         <YAxisComponent
                             domain={yDomain}
@@ -326,7 +390,11 @@ export function GlucoseChart({
                                 color: "var(--color-text-primary)",
                                 fontSize: 12,
                             }}
-                            labelFormatter={(label: string | number) => `Time: ${label}`}
+                            labelFormatter={(label: string | number) => {
+                                const ts = labelToTimestamp.get(String(label));
+                                const when = ts ? formatTooltipWhen(ts, timeRange) : String(label);
+                                return when;
+                            }}
                             formatter={(value: string | number) => [`${value} mg/dL`, "Glucose"]}
                         />
 
