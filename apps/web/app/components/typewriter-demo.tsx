@@ -49,7 +49,12 @@ const PARSED_CARDS: ParsedCard[] = [
     },
 ];
 
-export function TypewriterDemo() {
+interface TypewriterDemoProps {
+    /** Shorter panels so notes + chart fit one viewport on the landing page. */
+    compact?: boolean;
+}
+
+export function TypewriterDemo({ compact = false }: TypewriterDemoProps) {
     const [displayed, setDisplayed] = useState("");
     const [phase, setPhase] = useState<"typing" | "parsing" | "done">("typing");
     const [visibleCards, setVisibleCards] = useState(0);
@@ -80,8 +85,10 @@ export function TypewriterDemo() {
         };
     }, []);
 
+    const panelMin = compact ? "min-h-52" : "min-h-64";
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? "gap-4" : "gap-6"} items-start`}>
             {/* Input side */}
             <div className="card" style={{ padding: "0" }}>
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-border)]">
@@ -90,7 +97,9 @@ export function TypewriterDemo() {
                     <span className="w-3 h-3 rounded-full bg-[var(--color-spike-low)] opacity-80" />
                     <span className="ml-2 text-xs text-[var(--color-text-muted)]">notes.txt</span>
                 </div>
-                <div className="p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)] min-h-64 relative">
+                <div
+                    className={`p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)] ${panelMin} relative`}
+                >
                     <pre className="whitespace-pre-wrap break-words">{displayed}
                         {phase === "typing" && (
                             <span className="inline-block w-0.5 h-3.5 bg-[var(--color-accent)] ml-0.5 animate-pulse" />
@@ -100,7 +109,7 @@ export function TypewriterDemo() {
             </div>
 
             {/* Parsed output side */}
-            <div className="space-y-2 min-h-64">
+            <div className={`space-y-2 ${panelMin}`}>
                 {phase === "typing" && (
                     <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] pt-8 justify-center">
                         <Sparkles className="w-4 h-4" />

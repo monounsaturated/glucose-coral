@@ -1,13 +1,5 @@
 import Link from "next/link";
-import {
-  Upload,
-  BarChart3,
-  Zap,
-  ArrowRight,
-  TrendingUp,
-  Utensils,
-  Footprints,
-} from "lucide-react";
+import { Upload } from "lucide-react";
 import { DemoPreview } from "./components/demo-preview";
 import { Brand } from "./components/brand";
 import { TypewriterDemo } from "./components/typewriter-demo";
@@ -21,108 +13,37 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Brand />
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/demo" className="btn-secondary text-xs py-2 px-4">
-              Try Demo
-            </Link>
-            <Link href="/upload" className="btn-primary text-xs py-2 px-4">
-              Upload Data
-            </Link>
-          </div>
+          <Link href="/upload" className="btn-primary text-xs py-2 px-4">
+            <Upload className="w-4 h-4" />
+            Upload Your Data
+          </Link>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 badge bg-[var(--color-accent-subtle)] text-[var(--color-accent-hover)] mb-6">
-            <Zap className="w-3 h-3" />
-            Exploratory Glucose Analytics
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Understand How Food
-            <br />
-            <span className="gradient-text">Affects Your Glucose</span>
-          </h1>
-          <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-10 leading-relaxed">
-            Upload your Abbott FreeStyle Libre data and discover which meals
-            seem associated with spikes, which foods appear gentler on your
-            glucose, and whether walks after meals might help.
-          </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <Link href="/demo" className="btn-primary text-base px-8 py-3">
-              <BarChart3 className="w-4 h-4" />
-              Try the Demo
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/upload" className="btn-secondary text-base px-8 py-3">
+      {/* Hero + media — tuned to fit one viewport on common laptop sizes */}
+      <section className="min-h-[100dvh] pt-[4.5rem] px-6 pb-6 flex flex-col">
+        <div className="max-w-6xl mx-auto w-full flex flex-col flex-1 min-h-0">
+          <div className="text-center shrink-0 mb-4 md:mb-5 animate-fade-in">
+            <h1
+              className="text-3xl md:text-5xl font-bold tracking-tight mb-3 leading-tight"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Just Write Your Notes
+            </h1>
+            <p className="text-sm md:text-base text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-5 leading-relaxed">
+              Type freely in any language : AI parses meals, workouts, and sleep
+              into structured data with macro estimates.
+            </p>
+            <Link href="/upload" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Upload Your Data
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* Feature Cards */}
-      <section className="pb-16 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="card animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-meal-bg)] flex items-center justify-center mb-4">
-              <Utensils className="w-5 h-5 text-[var(--color-meal)]" />
-            </div>
-            <h3 className="font-semibold mb-2">Meal Impact Analysis</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-              See which foods appear associated with glucose spikes and which
-              seem to produce milder responses.
-            </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 flex-1 min-h-0 items-stretch">
+            <TypewriterDemo compact />
+            <DemoPreview compact />
           </div>
-          <div className="card animate-slide-up" style={{ animationDelay: "0.2s" }}>
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-workout-bg)] flex items-center justify-center mb-4">
-              <Footprints className="w-5 h-5 text-[var(--color-workout)]" />
-            </div>
-            <h3 className="font-semibold mb-2">Exercise Correlation</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-              Explore whether walks or workouts near meals seem correlated with
-              different glucose patterns.
-            </p>
-          </div>
-          <div className="card animate-slide-up" style={{ animationDelay: "0.3s" }}>
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-accent-subtle)] flex items-center justify-center mb-4">
-              <TrendingUp className="w-5 h-5 text-[var(--color-accent)]" />
-            </div>
-            <h3 className="font-semibold mb-2">Deterministic Analytics</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-              All spike detection and impact scoring uses transparent,
-              deterministic algorithms — no black-box ML.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Typewriter / input demo */}
-      <section className="pb-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>Just Write Your Notes</h2>
-            <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
-              Type freely in any language — AI parses meals, workouts, and sleep
-              into structured data with macro estimates.
-            </p>
-          </div>
-          <TypewriterDemo />
-        </div>
-      </section>
-
-      {/* Chart Demo Preview */}
-      <section className="pb-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>See It In Action</h2>
-            <p className="text-[var(--color-text-secondary)]">
-              Built-in demo with 3 days of sample data
-            </p>
-          </div>
-          <DemoPreview />
         </div>
       </section>
 

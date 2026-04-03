@@ -43,6 +43,10 @@ interface GlucoseChartProps {
     analyses: MealAnalysisResult[];
     onMealSelect?: (mealId: string) => void;
     selectedMealId?: string | null;
+    /** Shorter chart area for dense layouts (e.g. landing preview). */
+    chartHeight?: number;
+    /** Hides per-day meal/workout badge rows below the chart. */
+    compact?: boolean;
 }
 
 function formatTime(ts: string): string {
@@ -74,6 +78,8 @@ export function GlucoseChart({
     analyses,
     onMealSelect,
     selectedMealId,
+    chartHeight = 360,
+    compact = false,
 }: GlucoseChartProps) {
     const [timeRange, setTimeRange] = useState<TimeRange>("3d");
 
@@ -227,7 +233,7 @@ export function GlucoseChart({
     const tickInterval = timeRange === "1d" ? 4 : timeRange === "3d" ? 10 : 16;
 
     return (
-        <div className="space-y-4">
+        <div className={compact ? "space-y-2" : "space-y-4"}>
             {/* Time range tabs + legend */}
             <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
@@ -282,7 +288,7 @@ export function GlucoseChart({
             </div>
 
             {/* Chart */}
-            <div className="card p-4" style={{ height: 360 }}>
+            <div className="card p-4" style={{ height: chartHeight }}>
                 <ResponsiveContainerComponent width="100%" height="100%">
                     <LineChartComponent data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                         <defs>
@@ -411,6 +417,7 @@ export function GlucoseChart({
             </div>
 
             {/* Event badges grouped by day */}
+            {!compact && (
             <div className="space-y-3">
                 {groupedBadges.map((group) => (
                     <div key={group.heading} className="space-y-2">
@@ -442,6 +449,7 @@ export function GlucoseChart({
                     </div>
                 ))}
             </div>
+            )}
         </div>
     );
 }
